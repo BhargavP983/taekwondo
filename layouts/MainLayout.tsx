@@ -1,0 +1,30 @@
+import React from 'react';
+import { Route, Routes } from 'react-router-dom';
+import { Header } from '../components/Header';
+import { Footer } from '../components/Footer';
+import { HomePage } from '../pages/HomePage';
+import { AboutTaekwondo } from '../pages/AboutTaekwondo';
+import { ExecutiveMembers } from '../pages/ExecutiveMembers';
+import { GalleryPage } from '../pages/GalleryPage';
+import { ContactPage } from '../pages/Contact'; // Renamed to avoid clash with a potential Contact component
+import { EventsUpdates } from '../components/EventsUpdates'; // Adding EventsUpdates component
+
+export const MainLayout: React.FC = () => {
+  return (
+    <>
+      <Header />
+      <main className="pt-16"> {/* Adjust padding top to account for fixed header */}
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutTaekwondo />} />
+          <Route path="/executive-members" element={<ExecutiveMembers />} />
+          <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/events" element={<EventsUpdates />} /> {/* Route for EventsUpdates */}
+          {/* Add more routes here as needed */}
+        </Routes>
+      </main>
+      <Footer />
+    </>
+  );
+};
