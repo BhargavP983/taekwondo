@@ -15,7 +15,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
       <div className="container mx-auto px-4 flex justify-between items-center">
         {/* Logo */}
         <a href="#" className="flex items-center space-x-2">
-          <img src="img/logo.jpg" alt="AP Taekwondo Logo" className="h-10" />
+          <img src="/img/logo.jpg" alt="AP Taekwondo Logo" className="h-10" />
           <span className={`font-montserrat font-bold text-xl ${isSticky ? 'text-dark' : 'text-white'}`}>
             AP Taekwondo
           </span>
