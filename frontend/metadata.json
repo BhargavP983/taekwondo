@@ -1,0 +1,5 @@
+{
+  "requestFramePermissions": [],
+  "name": "AP Taekwondo Association Multi-Page App",
+  "description": "A React TypeScript application for AP Taekwondo Association, featuring a multi-page structure with home, contact, about, executive members, gallery, and login pages. It preserves the original design with Tailwind CSS and uses React Router for navigation."
+}
