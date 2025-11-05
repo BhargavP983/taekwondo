@@ -10,9 +10,11 @@ import { ContactPage } from '../pages/Contact'; // Renamed to avoid clash with a
 import { EventsUpdates } from '../components/EventsUpdates'; // Adding EventsUpdates component
 import { LoginPage } from '../pages/LoginPage'; // Default import of LoginPage
 import GenerateCertificate from '../components/CertificateForm';
+import PoomsaeEntryForm from '../components/PoomsaeEntryForm';
+import CadetEntryForm from '../pages/CadetApplicationForm';
 
 export const MainLayout: React.FC = () => {
-  
+
   return (
     <>
       <Header isSticky={false} />
@@ -25,11 +27,15 @@ export const MainLayout: React.FC = () => {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/events" element={<EventsUpdates />} /> {/* Route for EventsUpdates */}
           <Route path="/login" element={<LoginPage />} /> {/* Route for Login */}
+          <Route path="/registration/cadet" element={<CadetEntryForm />} />
+          <Route path="/registration/poomsae" element={<PoomsaeEntryForm />} />
           <Route path="/generate-certificate" element={<GenerateCertificate />} /> {/* Route for GenerateCertificate */}
+          {/* <Route path="/cadet-application" element={<CadetApplicationForm />} /> {/* Route for Cadet Application Form */}
+          {/* <Route path="/poomsae-application" element={<PoomsaeEntryForm />} /> Route for PoomsaeEntryForm */}
           {/* Add more routes here as needed */}
         </Routes>
       </main>
       <Footer />
     </>
-  );  
+  );
 };

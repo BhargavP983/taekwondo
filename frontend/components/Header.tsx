@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 interface HeaderProps {
@@ -9,6 +9,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAboutDropdownOpen, setIsAboutDropdownOpen] = useState(false);
   const [isGalleryDropdownOpen, setIsGalleryDropdownOpen] = useState(false);
+  const [isRegistrationDropdownOpen, setIsRegistrationDropdownOpen] = useState(false);
 
   const location = useLocation();
 
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
     setIsMobileMenuOpen(false);
     setIsAboutDropdownOpen(false);
     setIsGalleryDropdownOpen(false);
+    setIsRegistrationDropdownOpen(false);
   }, [location]);
 
   const toggleMobileMenu = useCallback(() => {
@@ -29,11 +31,15 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
   const handleGalleryMouseEnter = useCallback(() => setIsGalleryDropdownOpen(true), []);
   const handleGalleryMouseLeave = useCallback(() => setIsGalleryDropdownOpen(false), []);
 
+  const handleRegistrationMouseEnter = useCallback(() => setIsRegistrationDropdownOpen(true), []);
+  const handleRegistrationMouseLeave = useCallback(() => setIsRegistrationDropdownOpen(false), []);
+
   // Ensure dropdowns are closed if mobile menu is closed
   useEffect(() => {
     if (!isMobileMenuOpen) {
       setIsAboutDropdownOpen(false);
       setIsGalleryDropdownOpen(false);
+      setIsRegistrationDropdownOpen(false);
     }
   }, [isMobileMenuOpen]);
 
@@ -85,6 +91,8 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                   HOME
                 </Link>
               </li>
+
+              {/* About Us Dropdown */}
               <li
                 className="nav-item relative"
                 onMouseEnter={handleAboutMouseEnter}
@@ -123,6 +131,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                   </ul>
                 )}
               </li>
+
               <li className="nav-item">
                 <a
                   className="block py-2 px-3 text-white hover:text-primary transition-colors duration-200"
@@ -131,6 +140,8 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                   EVENTS
                 </a>
               </li>
+
+              {/* Gallery Dropdown */}
               <li
                 className="nav-item relative"
                 onMouseEnter={handleGalleryMouseEnter}
@@ -169,6 +180,47 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                   </ul>
                 )}
               </li>
+
+              {/* Registration Dropdown - NEW */}
+              <li
+                className="nav-item relative"
+                onMouseEnter={handleRegistrationMouseEnter}
+                onMouseLeave={handleRegistrationMouseLeave}
+              >
+                <button
+                  className="flex items-center w-full py-2 px-3 text-white hover:text-primary transition-colors duration-200 focus:outline-none lg:bg-transparent"
+                  onClick={() => setIsRegistrationDropdownOpen((prev) => !prev)}
+                  aria-expanded={isRegistrationDropdownOpen ? 'true' : 'false'}
+                >
+                  REGISTRATION <i className="bi bi-caret-down-fill ml-1 text-xs"></i>
+                </button>
+                {(isRegistrationDropdownOpen || isMobileMenuOpen) && (
+                  <ul
+                    className={`lg:absolute lg:top-full lg:left-0 bg-dark lg:bg-white lg:shadow-md lg:rounded-md text-white lg:text-dark w-full lg:w-56 py-2 lg:py-0
+                      ${isRegistrationDropdownOpen ? 'block' : 'hidden lg:block'}
+                    `}
+                    aria-labelledby="registrationDropdown"
+                  >
+                    <li>
+                      <Link
+                        className="block px-4 py-2 hover:bg-gray-200 lg:hover:bg-primary lg:hover:text-white transition-colors duration-200"
+                        to="/registration/cadet"
+                      >
+                        Cadet Application
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        className="block px-4 py-2 hover:bg-gray-200 lg:hover:bg-primary lg:hover:text-white transition-colors duration-200"
+                        to="/registration/poomsae"
+                      >
+                        Poomsae Application
+                      </Link>
+                    </li>
+                  </ul>
+                )}
+              </li>
+
               <li className="nav-item">
                 <Link
                   className="block py-2 px-3 text-white hover:text-primary transition-colors duration-200"
@@ -177,6 +229,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                   CONTACT US
                 </Link>
               </li>
+
               <li className="nav-item">
                 <Link
                   className="block py-2 px-3 text-white hover:text-primary transition-colors duration-200"

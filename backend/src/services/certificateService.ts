@@ -1,4 +1,4 @@
-import { createCanvas, loadImage } from 'canvas';
+const { createCanvas, loadImage } = require('@napi-rs/canvas');
 import fs from 'fs';
 import path from 'path';
 import { SerialNumberGenerator } from '../utils/serialGenerator';
@@ -39,7 +39,7 @@ export class CertificateService {
       // Generate serial number
       const serialNumber = SerialNumberGenerator.generate();
 
-            // ============================================
+      // ============================================
       // TEXT POSITIONING FOR YOUR TEMPLATE
       // ============================================
 

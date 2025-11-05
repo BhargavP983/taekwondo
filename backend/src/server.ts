@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import certificateRoutes from './routes/certificateRoutes';
+import cadetRoutes from './routes/cadetRoutes'; // Import cadet routes
+import poomsaeRoutes from './routes/poomsaeRoutes'; // Import poomsae routes
 
 dotenv.config();
 
@@ -33,11 +35,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`📨 ${req.method} ${req.path}`);
+  next();
+});
+
 // Static files
 app.use('/certificates', express.static(path.join(__dirname, '../uploads')));
+app.use('/forms', express.static(path.join(__dirname, '../uploads/forms'))); // Add this
+
 
 // Routes
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/cadets', cadetRoutes); // Register cadet routes
+app.use('/api/poomsae', poomsaeRoutes); // Register poomsae routes
+
 
 console.log('✅ Routes registered');
 
