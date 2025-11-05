@@ -1,10 +1,10 @@
 import React from 'react';
-import { HeroCarousel } from '../components/HeroCarousel';
-import { StatsOverlay } from '../components/StatsOverlay';
-import { VisionMissionValues } from '../components/VisionMissionValues';
-import { PresidentProfile } from '../components/PresidentProfile';
-import { EventsUpdates } from '../components/EventsUpdates';
-import { ResultsAchievements } from '../components/ResultsAchievements';
+import { HeroCarousel } from '../src/components/HeroCarousel';
+import { StatsOverlay } from '../src/components/StatsOverlay';
+import { VisionMissionValues } from '../src/components/VisionMissionValues';
+import { PresidentProfile } from '../src/components/PresidentProfile';
+import { EventsUpdates } from '../src/components/EventsUpdates';
+import { ResultsAchievements } from '../src/components/ResultsAchievements';
 
 export const HomePage: React.FC = () => {
   return (

@@ -3,15 +3,28 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import certificateRoutes from './routes/certificateRoutes';
+
+// Import routes
 import cadetRoutes from './routes/cadetRoutes'; // Import cadet routes
 import poomsaeRoutes from './routes/poomsaeRoutes'; // Import poomsae routes
+import authRoutes from './routes/authRoutes';
+import { UserDataManager } from './utils/userDataManager';
+import connectDB from './config/database';
 
+
+// Load environment variables
 dotenv.config();
+
+// Initialize user data
+UserDataManager.initialize();
 
 const app: Application = express();
 const PORT: number = parseInt(process.env.PORT || '5000', 10);
 
-// CORS with detailed logging
+// Connect to MongoDB
+connectDB();
+
+// CORS with detailed logging [middleware]
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true,
@@ -50,16 +63,18 @@ app.use('/forms', express.static(path.join(__dirname, '../uploads/forms'))); // 
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/cadets', cadetRoutes); // Register cadet routes
 app.use('/api/poomsae', poomsaeRoutes); // Register poomsae routes
-
+app.use('/api/auth', authRoutes);
 
 console.log('✅ Routes registered');
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   console.log('🏥 Health check requested');
+  const mongoose = require('mongoose');
   res.status(200).json({ 
     status: 'OK', 
     message: 'Backend server is running',
+    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
     timestamp: new Date().toISOString()
   });
 });
@@ -85,7 +100,7 @@ app.use((err: Error, req: Request, res: Response, next: any) => {
 });
 
 // Start server
-app.listen(PORT, '127.0.0.1', () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log('\n🚀 ================================');
   console.log(`✅ Server started successfully!`);
   console.log(`📍 Backend:  http://localhost:${PORT}`);

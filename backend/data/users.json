@@ -1,0 +1,15 @@
+{
+  "users": [
+    {
+      "id": "SA-000001",
+      "email": "cse.dlbc@gmail.com",
+      "password": "$2b$10$OWXL5Rr9TxnsUC2lvALCxuZQagbI3m3jVmbJayxufuNxKtjPOaZtG",
+      "name": "ARJUN PATEL",
+      "role": "super_admin",
+      "state": "",
+      "district": "",
+      "createdAt": "2025-11-05T16:38:05.942Z",
+      "isActive": true
+    }
+  ]
+}

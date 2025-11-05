@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PresidentProfile } from '../components/PresidentProfile';
+import { PresidentProfile } from '../src/components/PresidentProfile';
 
 // Define an interface for executive member data, similar to PresidentProfileProps but simpler for now.
 interface ExecutiveMember {

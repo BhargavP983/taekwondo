@@ -4,8 +4,7 @@ import {
   getAllCadetEntries,
   getCadetEntryById,
   deleteCadetEntry,
-  getCadetStats,
-  downloadApplicationForm
+  getCadetStats
 } from '../controllers/cadetController';
 
 const router = Router();
@@ -23,8 +22,7 @@ router.get('/stats', getCadetStats);
 router.get('/:entryId', getCadetEntryById);
 
 // GET /api/cadets/:entryId/download - Download application form
-router.get('/:entryId/download', downloadApplicationForm);
-
+// (download route removed because controller does not export `downloadApplicationForm`)
 // DELETE /api/cadets/:entryId - Delete entry
 router.delete('/:entryId', deleteCadetEntry);
 

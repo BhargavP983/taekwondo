@@ -1,8 +1,15 @@
 import { Request, Response } from 'express';
-import { CadetDataManager } from '../utils/CadetDataManager';
+import { Cadet } from '../models/cadet';
 import { ApplicationFormGenerator } from '../services/cadetFormService';
 
 const formGenerator = new ApplicationFormGenerator();
+
+// Generate unique entry ID
+const generateCadetEntryId = async (): Promise<string> => {
+  const count = await Cadet.countDocuments();
+  const id = (count + 1).toString().padStart(6, '0');
+  return `CAD-${id}`;
+};
 
 export const createCadetEntry = async (req: Request, res: Response) => {
   try {
@@ -21,7 +28,7 @@ export const createCadetEntry = async (req: Request, res: Response) => {
       schoolName
     } = req.body;
 
-    // Validate required fields
+    // Validation
     if (!gender || !name || !dateOfBirth || !parentGuardianName) {
       return res.status(400).json({
         success: false,
@@ -29,23 +36,12 @@ export const createCadetEntry = async (req: Request, res: Response) => {
       });
     }
 
-    // Save entry
-    const entryId = CadetDataManager.addEntry({
-      gender,
-      weightCategory,
-      name: name.toUpperCase(),
-      dateOfBirth,
-      age,
-      weight,
-      parentGuardianName,
-      state,
-      presentBeltGrade,
-      tfiIdCardNo,
-      academicQualification,
-      schoolName
-    });
+    // Generate entry ID
+    const entryId = await generateCadetEntryId();
 
-    // Generate application form
+    console.log(`📝 Creating cadet entry: ${entryId}`);
+
+    // Generate application form image
     const formResult = await formGenerator.generateApplicationForm({
       entryId,
       gender,
@@ -62,18 +58,51 @@ export const createCadetEntry = async (req: Request, res: Response) => {
       schoolName
     });
 
+    console.log(`✅ Form generated: ${formResult.fileName}`);
+
+    // Save to MongoDB
+    const cadet = await Cadet.create({
+      entryId,
+      gender,
+      weightCategory,
+      name: name.toUpperCase(),
+      dateOfBirth: new Date(dateOfBirth),
+      age: parseInt(age),
+      weight: parseFloat(weight),
+      parentGuardianName,
+      state,
+      presentBeltGrade,
+      tfiIdCardNo,
+      academicQualification,
+      schoolName,
+      formFileName: formResult.fileName
+    });
+
+    console.log(`✅ Cadet saved to MongoDB: ${cadet._id}`);
+
     res.status(201).json({
       success: true,
       message: 'Cadet entry created successfully',
       data: {
-        entryId,
-        applicationNumber: entryId,
+        entryId: cadet.entryId,
+        applicationNumber: cadet.entryId,
         downloadUrl: `${req.protocol}://${req.get('host')}${formResult.filePath}`,
-        fileName: formResult.fileName
+        fileName: formResult.fileName,
+        createdAt: cadet.createdAt
       }
     });
+
   } catch (error: any) {
-    console.error('Create cadet entry error:', error);
+    console.error('❌ Create cadet entry error:', error);
+    
+    // Handle duplicate key error
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'TFI ID Card number already exists'
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to create entry'
@@ -83,18 +112,36 @@ export const createCadetEntry = async (req: Request, res: Response) => {
 
 export const getAllCadetEntries = async (req: Request, res: Response) => {
   try {
-    const entries = CadetDataManager.getAllEntries();
-    
+    // Pagination
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    // Filters
+    const filter: any = {};
+    if (req.query.state) filter.state = req.query.state;
+    if (req.query.gender) filter.gender = req.query.gender;
+
+    const cadets = await Cadet.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalCount = await Cadet.countDocuments(filter);
+
     res.status(200).json({
       success: true,
-      count: entries.length,
-      data: entries
+      count: cadets.length,
+      total: totalCount,
+      page,
+      totalPages: Math.ceil(totalCount / limit),
+      data: cadets
     });
-  } catch (error) {
-    console.error('Get cadet entries error:', error);
+  } catch (error: any) {
+    console.error('❌ Get cadet entries error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch entries'
+      message: error.message || 'Failed to fetch entries'
     });
   }
 };
@@ -102,9 +149,9 @@ export const getAllCadetEntries = async (req: Request, res: Response) => {
 export const getCadetEntryById = async (req: Request, res: Response) => {
   try {
     const { entryId } = req.params;
-    const entry = CadetDataManager.getEntryById(entryId);
+    const cadet = await Cadet.findOne({ entryId });
 
-    if (!entry) {
+    if (!cadet) {
       return res.status(404).json({
         success: false,
         message: 'Entry not found'
@@ -113,44 +160,12 @@ export const getCadetEntryById = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      data: entry
+      data: cadet
     });
-  } catch (error) {
-    console.error('Get cadet entry error:', error);
+  } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch entry'
-    });
-  }
-};
-
-export const downloadApplicationForm = async (req: Request, res: Response) => {
-  try {
-    const { entryId } = req.params;
-    const entry = CadetDataManager.getEntryById(entryId);
-
-    if (!entry) {
-      return res.status(404).json({
-        success: false,
-        message: 'Entry not found'
-      });
-    }
-
-    // Regenerate form
-    const formResult = await formGenerator.generateApplicationForm(entry);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        downloadUrl: `${req.protocol}://${req.get('host')}${formResult.filePath}`,
-        fileName: formResult.fileName
-      }
-    });
-  } catch (error) {
-    console.error('Download application form error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to generate form'
+      message: error.message || 'Failed to fetch entry'
     });
   }
 };
@@ -158,41 +173,58 @@ export const downloadApplicationForm = async (req: Request, res: Response) => {
 export const deleteCadetEntry = async (req: Request, res: Response) => {
   try {
     const { entryId } = req.params;
-    const deleted = CadetDataManager.deleteEntry(entryId);
+    const cadet = await Cadet.findOneAndDelete({ entryId });
 
-    if (deleted) {
-      res.status(200).json({
-        success: true,
-        message: 'Entry deleted successfully'
-      });
-    } else {
-      res.status(404).json({
+    if (!cadet) {
+      return res.status(404).json({
         success: false,
         message: 'Entry not found'
       });
     }
-  } catch (error) {
-    console.error('Delete cadet entry error:', error);
+
+    res.status(200).json({
+      success: true,
+      message: 'Entry deleted successfully'
+    });
+  } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: 'Failed to delete entry'
+      message: error.message || 'Failed to delete entry'
     });
   }
 };
 
 export const getCadetStats = async (req: Request, res: Response) => {
   try {
-    const stats = CadetDataManager.getStats();
+    const totalEntries = await Cadet.countDocuments();
     
+    const byGender = await Cadet.aggregate([
+      { $group: { _id: '$gender', count: { $sum: 1 } } }
+    ]);
+    
+    const byState = await Cadet.aggregate([
+      { $group: { _id: '$state', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    const recentEntries = await Cadet.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('entryId name state createdAt');
+
     res.status(200).json({
       success: true,
-      data: stats
+      data: {
+        totalEntries,
+        byGender,
+        byState,
+        recentEntries
+      }
     });
-  } catch (error) {
-    console.error('Get cadet stats error:', error);
+  } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch statistics'
+      message: error.message || 'Failed to fetch statistics'
     });
   }
 };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import CertificateForm from '../components/CertificateForm';
+import CertificateForm from '../src/components/CertificateForm';
 import { certificateApi } from '../services/api';
 import './App.css';
 
