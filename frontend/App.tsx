@@ -7,23 +7,30 @@ import { ProtectedRoute } from './src/components/ProtectedRoute';
 import { ScrollToTopButton } from './src/components/ScrollToTopButton';
 
 // Public Pages
-import {HomePage} from './pages/HomePage';
-import {AboutTaekwondo} from './pages/AboutTaekwondo';
-import {ExecutiveMembers} from './pages/ExecutiveMembers';
-import {GalleryPage} from './pages/GalleryPage';
-import {ContactPage} from './pages/Contact';
+import { HomePage } from './pages/HomePage';
+import { AboutTaekwondo } from './pages/AboutTaekwondo';
+import { ExecutiveMembers } from './pages/ExecutiveMembers';
+import { GalleryPage } from './pages/GalleryPage';
+import { ContactPage } from './pages/Contact';
 
 // Auth Pages
-import {Login} from './pages/LoginPage';
-import {Register} from './pages/register';
-import {ForgotPassword} from './pages/ForgotPassword';
+import { Login } from './pages/LoginPage';
+import { Register } from './pages/register';
+import { ForgotPassword } from './pages/ForgotPassword';
 
 // Registration Forms (Public)
 import CadetEntryForm from './pages/CadetApplicationForm';
 import PoomsaeEntryForm from './src/components/PoomsaeEntryForm';
 
 // Dashboard Pages
-import {SuperAdminDashboard} from './pages/dashboards/SuperAdminDashboard';
+import SuperAdminDashboard from './pages/dashboards/SuperAdminDashboard';
+
+// Dashboard Page Components
+import UserManagement from './pages/dashboards/userManagement';
+import CadetApplications from './pages/dashboards/cadetApplications';
+import PoomsaeApplications from './pages/dashboards/PoomsaeApplications';
+
+import TestPage from './pages/dashboards/TestPage';
 
 function App() {
   return (
@@ -37,7 +44,7 @@ function App() {
             <Route path="/executive-members" element={<ExecutiveMembers />} />
             <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            
+
             {/* Registration Forms (Public Access) */}
             <Route path="/registration/cadet" element={<CadetEntryForm />} />
             <Route path="/registration/poomsae" element={<PoomsaeEntryForm />} />
@@ -59,13 +66,17 @@ function App() {
                   <Routes>
                     <Route path="dashboard" element={<SuperAdminDashboard />} />
                     <Route path="users" element={<div>User Management</div>} />
-                    <Route path="settings" element={<div>Settings</div>} />
+                    <Route path="applications/cadet" element={<CadetApplications />} />
+                    <Route path="applications/poomsae" element={<PoomsaeApplications />} />
                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                   </Routes>
                 </DashboardLayout>
               </ProtectedRoute>
             }
           />
+
+          <Route path="/test" element={<TestPage />} />
+
 
           {/* Protected State Admin Routes */}
           {/* <Route

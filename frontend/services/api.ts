@@ -15,6 +15,14 @@ const api = axios.create({
   },
 });
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  };
+};
+
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
@@ -128,3 +136,113 @@ export const certificateApi = {
 };
 
 export { API_BASE_URL, BACKEND_URL };
+
+export const dashboardAPI = {
+  getStats: async () => {
+    const response = await fetch(`${API_BASE_URL}/dashboard/stats`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  getActivities: async (limit = 10) => {
+    const response = await fetch(`${API_BASE_URL}/dashboard/activities?limit=${limit}`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  }
+};
+
+export const usersAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/users`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  create: async (userData: any) => {
+    const response = await fetch(`${API_BASE_URL}/auth/users`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData)
+    });
+    return response.json();
+  },
+
+  update: async (userId: string, userData: any) => {
+    const response = await fetch(`${API_BASE_URL}/auth/users/${userId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData)
+    });
+    return response.json();
+  },
+
+  delete: async (userId: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/users/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  toggleStatus: async (userId: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/users/${userId}/toggle-status`, {
+      method: 'PATCH',
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  }
+};
+
+export const poomsaeAPI = {
+  getAll: async (page = 1, limit = 10) => {
+    const response = await fetch(`${API_BASE_URL}/poomsae?page=${page}&limit=${limit}`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  getStats: async () => {
+    const response = await fetch(`${API_BASE_URL}/poomsae/stats`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  delete: async (entryId: string) => {
+    const response = await fetch(`${API_BASE_URL}/poomsae/${entryId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  }
+};
+
+
+export const cadetsAPI = {
+  getAll: async (page = 1, limit = 10) => {
+    const response = await fetch(`${API_BASE_URL}/cadets?page=${page}&limit=${limit}`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  getStats: async () => {
+    const response = await fetch(`${API_BASE_URL}/cadets/stats`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  delete: async (entryId: string) => {
+    const response = await fetch(`${API_BASE_URL}/cadets/${entryId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  }
+};
+
+// Duplicate poomsaeAPI removed — the earlier `poomsaeAPI` declaration above provides getAll, getStats and delete.

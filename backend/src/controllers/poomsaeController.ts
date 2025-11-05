@@ -140,3 +140,51 @@ export const getPoomsaeStats = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const deletePoomsaeEntry = async (req: Request, res: Response) => {
+  try {
+    const { entryId } = req.params;
+    const poomsae = await Poomsae.findOneAndDelete({ entryId });
+
+    if (!poomsae) {
+      return res.status(404).json({
+        success: false,
+        message: 'Entry not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Entry deleted successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to delete entry'
+    });
+  }
+};
+
+export const getPoomsaeEntryById = async (req: Request, res: Response) => {
+  try {
+    const { entryId } = req.params;
+    const poomsae = await Poomsae.findOne({ entryId });
+
+    if (!poomsae) {
+      return res.status(404).json({
+        success: false,
+        message: 'Entry not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: poomsae
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch entry'
+    });
+  }
+};

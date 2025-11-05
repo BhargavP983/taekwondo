@@ -9,6 +9,7 @@ import cadetRoutes from './routes/cadetRoutes'; // Import cadet routes
 import poomsaeRoutes from './routes/poomsaeRoutes'; // Import poomsae routes
 import authRoutes from './routes/authRoutes';
 import { UserDataManager } from './utils/userDataManager';
+import dashboardRoutes from './routes/dashboardRoutes';
 import connectDB from './config/database';
 
 
@@ -64,6 +65,7 @@ app.use('/api/certificates', certificateRoutes);
 app.use('/api/cadets', cadetRoutes); // Register cadet routes
 app.use('/api/poomsae', poomsaeRoutes); // Register poomsae routes
 app.use('/api/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 console.log('✅ Routes registered');
 
