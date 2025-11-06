@@ -276,3 +276,20 @@ export const stateAdminAPI = {
     return response.json();
   }
 };
+
+// State Admin District APIs
+export const stateAdminDistrictAPI = {
+  list: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/district-admins`, { headers: getAuthHeaders() });
+    return response.json();
+  },
+  create: async (data: any) => {
+    const response = await fetch(`${API_BASE_URL}/auth/district-admins`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  },
+  // Add update, delete as needed
+};

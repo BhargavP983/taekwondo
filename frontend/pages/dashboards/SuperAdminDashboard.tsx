@@ -254,6 +254,15 @@ const SuperAdminDashboard: React.FC = () => {
               </Link>
 
               <Link
+                to="/admin/certificates/generate"
+                className="p-4 border-2 border-gray-200 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition text-center group"
+              >
+                <div className="text-4xl mb-2 group-hover:scale-110 transition">🎓</div>
+                <p className="font-semibold">Generate Certificates</p>
+                <p className="text-xs text-gray-500 mt-1">Create & Print</p>
+              </Link>
+
+              <Link
                 to="/admin/settings"
                 className="p-4 border-2 border-gray-200 rounded-lg hover:border-gray-500 hover:bg-gray-50 transition text-center group"
               >

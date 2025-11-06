@@ -110,10 +110,6 @@ export const Login: React.FC = () => {
                 />
                 <span className="ml-2 text-sm text-gray-600">Remember me</span>
               </label>
-
-              <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
-                Forgot Password?
-              </Link>
             </div>
 
             {/* Submit Button */}
@@ -125,16 +121,6 @@ export const Login: React.FC = () => {
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
-
-          {/* Register Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-blue-600 hover:text-blue-700 font-semibold">
-                Register here
-              </Link>
-            </p>
-          </div>
         </div>
 
         {/* Default Credentials Info */}

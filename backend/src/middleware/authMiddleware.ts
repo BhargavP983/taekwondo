@@ -48,3 +48,15 @@ export const requireRole = (...roles: string[]) => {
     next();
   };
 };
+
+export const requireRoleOrSelf = (...roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (
+      !req.user ||
+      (!roles.includes(req.user.role) && req.user.userId !== req.params.userId)
+    ) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+    next();
+  };
+};

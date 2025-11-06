@@ -55,7 +55,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSuccess 
 
     try {
       const response = await usersAPI.create(formData);
-      
+
       if (response.success) {
         alert('User created successfully!');
         setFormData({

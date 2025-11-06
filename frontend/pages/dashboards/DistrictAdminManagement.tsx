@@ -1,162 +1,213 @@
 import React, { useState, useEffect } from 'react';
-import { usersAPI } from '../../services/api';
 import { useAuth } from '../../src/contexts/AuthContext';
+
+const API = 'http://localhost:5000/api/auth/district-admins';
+
+const getHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': 'Bearer ' +
+    (localStorage.getItem('token') || sessionStorage.getItem('token') || '')
+});
 
 interface DistrictAdmin {
   _id: string;
   name: string;
   email: string;
-  role: string;
   state: string;
   district: string;
   isActive: boolean;
-  createdAt: string;
-  lastLogin?: string;
 }
 
 const DistrictAdminManagement: React.FC = () => {
   const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isStateAdmin = user?.role === 'state_admin';
   const [admins, setAdmins] = useState<DistrictAdmin[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [form, setForm] = useState<any>({ name: '', email: '', password: '', district: '' });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchDistrictAdmins();
-  }, []);
+  const canEdit = (admin: DistrictAdmin) => {
+    if (isSuperAdmin) return true;
+    if (isStateAdmin) return admin.state === user.state;
+    return false;
+  };
 
-  const fetchDistrictAdmins = async () => {
-    try {
-      setLoading(true);
-      const response = await usersAPI.getAll();
-      if (response.success) {
-        // Filter only district admins from user's state
-        const districtAdmins = response.data.filter(
-          (u: DistrictAdmin) => u.role === 'district_admin' && u.state === user?.state
-        );
-        setAdmins(districtAdmins);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch district admins');
-    } finally {
-      setLoading(false);
+  const fetchAdmins = async () => {
+    setLoading(true);
+    const resp = await fetch(API, { headers: getHeaders() });
+    const data = await resp.json();
+    setAdmins(data.data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchAdmins(); }, []);
+
+  const handleOpenAdd = () => {
+    setForm({ name: '', email: '', password: '', district: '' });
+    setSelectedId(null);
+    setModalMode('add');
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (admin: DistrictAdmin) => {
+    setForm({ name: admin.name, email: admin.email, district: admin.district });
+    setSelectedId(admin._id);
+    setModalMode('edit');
+    setShowModal(true);
+  };
+
+  const handleSubmit = async () => {
+    // For edit, password is not required and not sent
+    let resp;
+    if (modalMode === 'add') {
+      resp = await fetch(API, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ ...form, password: form.password })
+      });
+    } else {
+      resp = await fetch(`${API}/${selectedId}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(form)
+      });
+    }
+    const data = await resp.json();
+    if (data.success) {
+      setShowModal(false);
+      fetchAdmins();
+    } else {
+      alert(data.message || 'Error');
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this district admin?')) return;
+    const resp = await fetch(`${API}/${id}`, { method: 'DELETE', headers: getHeaders() });
+    const data = await resp.json();
+    if (data.success) fetchAdmins();
+    else alert(data.message || 'Error');
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const handleToggle = async (id: string) => {
+    const resp = await fetch(`${API}/${id}/toggle-status`, { method: 'PATCH', headers: getHeaders() });
+    const data = await resp.json();
+    if (data.success) fetchAdmins();
+    else alert(data.message || 'Error');
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">District Admin Management</h1>
-          <p className="text-gray-600 mt-1">{user?.state} State - Manage district administrators</p>
-        </div>
-        <button
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-        >
+        <h1 className="text-2xl font-bold">District Admin Management</h1>
+        <button onClick={handleOpenAdd} className="bg-blue-600 text-white px-4 py-2 rounded-lg">
           Add District Admin
         </button>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-gray-600 text-sm">Total District Admins</p>
-          <p className="text-2xl font-bold text-blue-600">{admins.length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-gray-600 text-sm">Active</p>
-          <p className="text-2xl font-bold text-green-600">
-            {admins.filter(a => a.isActive).length}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-gray-600 text-sm">Inactive</p>
-          <p className="text-2xl font-bold text-red-600">
-            {admins.filter(a => !a.isActive).length}
-          </p>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="overflow-x-auto">
+        {loading ? (
+          <div>Loading...</div>
+        ) : (
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admin</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">District</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Login</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-6 py-3">Name</th>
+                <th className="px-6 py-3">Email</th>
+                <th className="px-6 py-3">District</th>
+                <th className="px-6 py-3">Active</th>
+                <th className="px-6 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {admins.length > 0 ? (
-                admins.map((admin) => (
-                  <tr key={admin._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <p className="font-semibold text-gray-800">{admin.name}</p>
-                      <p className="text-sm text-gray-500">{admin.email}</p>
-                    </td>
-                    <td className="px-6 py-4 text-sm">{admin.district}</td>
-                    <td className="px-6 py-4">
-                      {admin.isActive ? (
-                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 border border-green-300">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 border border-red-300">
-                          Inactive
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{formatDate(admin.lastLogin)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{formatDate(admin.createdAt)}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button className="text-blue-600 hover:text-blue-800" title="Edit">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    No district admins found
+            <tbody>
+              {admins.map(admin => (
+                <tr key={admin._id} className="border-b">
+                  <td className="px-6 py-2">{admin.name}</td>
+                  <td className="px-6 py-2">{admin.email}</td>
+                  <td className="px-6 py-2">{admin.district}</td>
+                  <td className="px-6 py-2">
+                    <button
+                      disabled={!canEdit(admin)}
+                      className={`px-3 py-1 rounded 
+                          ${admin.isActive ? 'bg-green-100 text-green-700'
+                                           : 'bg-red-100 text-red-700'}
+                      border
+                      ${!canEdit(admin) ? 'opacity-50 cursor-not-allowed' : ''}
+      `}
+                      onClick={() => canEdit(admin) && handleToggle(admin._id)}
+                    >
+                      {admin.isActive ? 'Active' : 'Inactive'}
+                    </button>
                   </td>
+                  <td>
+                    <button disabled={!canEdit(admin)} className={`text-blue-600 ${!canEdit(admin) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => canEdit(admin) && handleOpenEdit(admin)} > Edit </button>
+                    <button disabled={!canEdit(admin)} className={`text-red-600 ${!canEdit(admin) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => canEdit(admin) && handleDelete(admin._id)} > Delete </button>
+                  </td>
+
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded shadow-lg w-96">
+            <h2 className="text-lg font-bold mb-4">
+              {modalMode === 'add' ? 'Add' : 'Edit'} District Admin
+            </h2>
+            <label>Name</label>
+            <input
+              className="mb-2 w-full border px-2 py-1"
+              value={form.name || ''}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            />
+            <label>Email</label>
+            <input
+              className="mb-2 w-full border px-2 py-1"
+              type="email"
+              value={form.email || ''}
+              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+            />
+            {modalMode === 'add' && (
+              <>
+                <label>Password</label>
+                <input
+                  className="mb-2 w-full border px-2 py-1"
+                  type="password"
+                  value={form.password || ''}
+                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                />
+              </>
+            )}
+            <label>District</label>
+            <input
+              className="mb-2 w-full border px-2 py-1"
+              value={form.district || ''}
+              onChange={e => setForm(f => ({ ...f, district: e.target.value }))}
+            />
+            <div className="flex gap-2">
+              <button
+                className="bg-blue-500 text-white px-4 py-2 rounded"
+                onClick={handleSubmit}
+              >
+                Save
+              </button>
+              <button
+                className="bg-gray-200 px-4 py-2 rounded"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

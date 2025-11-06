@@ -259,6 +259,15 @@ const StateAdminDashboard: React.FC = () => {
                 <p className="text-xs text-gray-500 mt-1">Manage district admins</p>
               </Link>
 
+              <Link
+                to="/state-admin/certificates/generate"
+                className="p-4 border-2 border-yellow-100 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition text-center group"
+              >
+                <div className="text-4xl mb-2 group-hover:scale-110 transition">🎓</div>
+                <p className="font-semibold">Generate Certificates</p>
+                <p className="text-xs text-gray-500 mt-1">Create and print</p>
+              </Link>
+
               <button
                 onClick={fetchDashboardData}
                 className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-center group"

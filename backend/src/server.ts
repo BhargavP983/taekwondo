@@ -8,7 +8,7 @@ import certificateRoutes from './routes/certificateRoutes';
 import cadetRoutes from './routes/cadetRoutes'; // Import cadet routes
 import poomsaeRoutes from './routes/poomsaeRoutes'; // Import poomsae routes
 import authRoutes from './routes/authRoutes';
-import { UserDataManager } from './utils/userDataManager';
+
 import dashboardRoutes from './routes/dashboardRoutes';
 import connectDB from './config/database';
 
@@ -16,8 +16,6 @@ import connectDB from './config/database';
 // Load environment variables
 dotenv.config();
 
-// Initialize user data
-UserDataManager.initialize();
 
 const app: Application = express();
 const PORT: number = parseInt(process.env.PORT || '5000', 10);
@@ -56,7 +54,7 @@ app.use((req, res, next) => {
 });
 
 // Static files
-app.use('/certificates', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/forms', express.static(path.join(__dirname, '../uploads/forms'))); // Add this
 
 

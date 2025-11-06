@@ -8,15 +8,9 @@ import { ScrollToTopButton } from './src/components/ScrollToTopButton';
 
 // Public Pages
 import { HomePage } from './pages/HomePage';
-import { AboutTaekwondo } from './pages/AboutTaekwondo';
-import { ExecutiveMembers } from './pages/ExecutiveMembers';
-import { GalleryPage } from './pages/GalleryPage';
-import { ContactPage } from './pages/Contact';
 
 // Auth Pages
 import { Login } from './pages/LoginPage';
-import { Register } from './pages/register';
-import { ForgotPassword } from './pages/ForgotPassword';
 
 // Registration Forms (Public)
 import CadetEntryForm from './pages/CadetApplicationForm';
@@ -29,6 +23,7 @@ import SuperAdminDashboard from './pages/dashboards/SuperAdminDashboard';
 import UserManagement from './pages/dashboards/userManagement';
 import CadetApplications from './pages/dashboards/cadetApplications';
 import PoomsaeApplications from './pages/dashboards/PoomsaeApplications';
+import GenerateCertificate from './pages/GenerateCertificate';
 
 // State Admin Dashboard Pages
 import StateAdminDashboard from './pages/dashboards/StateAdminDashboard';
@@ -37,6 +32,7 @@ import StateAdminPoomsaeApplications from './pages/dashboards/StateAdminPoomsaeA
 import DistrictAdminManagement from './pages/dashboards/DistrictAdminManagement';
 
 import TestPage from './pages/dashboards/TestPage';
+import CertificateGenerator from './pages/GenerateCertificate';
 
 function App() {
   return (
@@ -49,7 +45,6 @@ function App() {
             <Route path="/registration/cadet" element={<CadetEntryForm />} />
             <Route path="/registration/poomsae" element={<PoomsaeEntryForm />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
           </Route>
 
           {/* Protected Admin Routes with DashboardLayout */}
@@ -63,6 +58,7 @@ function App() {
                     <Route path="users" element={<UserManagement />} />
                     <Route path="applications/cadet" element={<CadetApplications />} />
                     <Route path="applications/poomsae" element={<PoomsaeApplications />} />
+                    <Route path="certificates/generate" element={<GenerateCertificate />} />
                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                   </Routes>
                 </DashboardLayout>
@@ -84,6 +80,14 @@ function App() {
                     <Route path="applications/cadet" element={<StateAdminCadetApplications />} />
                     <Route path="applications/poomsae" element={<StateAdminPoomsaeApplications />} />
                     <Route path="district-admins" element={<DistrictAdminManagement />} />
+                    <Route
+                      path="certificates/generate"
+                      element={
+                        // <ProtectedRoute allowedRoles={['state_admin', 'super_admin']}>
+                          <CertificateGenerator />
+                        // </ProtectedRoute>
+                      }
+                    />                   
                     <Route path="reports" element={<div className="p-8 text-center">Reports Coming Soon</div>} />
                     <Route path="*" element={<Navigate to="/state-admin/dashboard" replace />} />
                   </Routes>

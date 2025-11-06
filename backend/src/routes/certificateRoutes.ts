@@ -1,17 +1,12 @@
 import { Router } from 'express';
-import {
-  generateCertificate,
-  listCertificates,
-  deleteCertificate
-} from '../controllers/certificateController';
+import { authenticateToken } from '../middleware/authMiddleware';
+import { createCertificate, getCertificates, deleteCertificate } from '../controllers/certificateController';
+
 
 const router = Router();
 
-// POST /api/certificates - Generate new certificate
-router.post('/', generateCertificate);
-
-// GET /api/certificates - List all certificates
-router.get('/', listCertificates);
+router.post('/generate', authenticateToken, createCertificate);
+router.get('/', authenticateToken, getCertificates);
 
 // DELETE /api/certificates/:fileName - Delete specific certificate
 router.delete('/:fileName', deleteCertificate);

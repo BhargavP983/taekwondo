@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import { UserRole } from './userDataManager';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = '7d'; // 7 days
@@ -7,8 +6,10 @@ const JWT_EXPIRES_IN = '7d'; // 7 days
 export interface JWTPayload {
   userId: string;
   email: string;
-  role: UserRole;
+  role: string;
   name: string;
+  state?: string;
+  district?: string;
 }
 
 export const generateToken = (payload: JWTPayload): string => {
