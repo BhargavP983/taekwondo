@@ -76,7 +76,6 @@ const cadetSchema = new Schema<ICadet>(
     tfiIdCardNo: {
       type: String,
       trim: true,
-      unique: true
     },
     academicQualification: {
       type: String,
