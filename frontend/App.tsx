@@ -30,6 +30,12 @@ import UserManagement from './pages/dashboards/userManagement';
 import CadetApplications from './pages/dashboards/cadetApplications';
 import PoomsaeApplications from './pages/dashboards/PoomsaeApplications';
 
+// State Admin Dashboard Pages
+import StateAdminDashboard from './pages/dashboards/StateAdminDashboard';
+import StateAdminCadetApplications from './pages/dashboards/StateAdminCadetApplications';
+import StateAdminPoomsaeApplications from './pages/dashboards/StateAdminPoomsaeApplications';
+import DistrictAdminManagement from './pages/dashboards/DistrictAdminManagement';
+
 import TestPage from './pages/dashboards/TestPage';
 
 function App() {
@@ -37,24 +43,13 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Public Routes with MainLayout (Header + Footer) */}
+          {/* Public Routes */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
-            <Route path="/about" element={<AboutTaekwondo />} />
-            <Route path="/executive-members" element={<ExecutiveMembers />} />
-            <Route path="/gallery" element={<GalleryPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-
-            {/* Registration Forms (Public Access) */}
             <Route path="/registration/cadet" element={<CadetEntryForm />} />
             <Route path="/registration/poomsae" element={<PoomsaeEntryForm />} />
-          </Route>
-
-          {/* Auth Pages (No Header/Footer) */}
-          <Route element={<MainLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
           </Route>
 
           {/* Protected Admin Routes with DashboardLayout */}
@@ -65,7 +60,7 @@ function App() {
                 <DashboardLayout>
                   <Routes>
                     <Route path="dashboard" element={<SuperAdminDashboard />} />
-                    <Route path="users" element={<div>User Management</div>} />
+                    <Route path="users" element={<UserManagement />} />
                     <Route path="applications/cadet" element={<CadetApplications />} />
                     <Route path="applications/poomsae" element={<PoomsaeApplications />} />
                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
@@ -78,37 +73,40 @@ function App() {
           <Route path="/test" element={<TestPage />} />
 
 
-          {/* Protected State Admin Routes */}
-          {/* <Route
+          {/* State Admin Routes */}
+          <Route
             path="/state-admin/*"
             element={
               <ProtectedRoute allowedRoles={['state_admin', 'super_admin']}>
                 <DashboardLayout>
                   <Routes>
                     <Route path="dashboard" element={<StateAdminDashboard />} />
-                    <Route path="applications" element={<div>Applications</div>} />
+                    <Route path="applications/cadet" element={<StateAdminCadetApplications />} />
+                    <Route path="applications/poomsae" element={<StateAdminPoomsaeApplications />} />
+                    <Route path="district-admins" element={<DistrictAdminManagement />} />
+                    <Route path="reports" element={<div className="p-8 text-center">Reports Coming Soon</div>} />
                     <Route path="*" element={<Navigate to="/state-admin/dashboard" replace />} />
                   </Routes>
                 </DashboardLayout>
               </ProtectedRoute>
             }
-          /> */}
+          />
 
           {/* Protected District Admin Routes */}
-          {/* <Route
+          <Route
             path="/district-admin/*"
             element={
               <ProtectedRoute allowedRoles={['district_admin', 'state_admin', 'super_admin']}>
                 <DashboardLayout>
                   <Routes>
-                    <Route path="dashboard" element={<DistrictAdminDashboard />} />
+                    {/* <Route path="dashboard" element={<DistrictAdminDashboard />} /> */}
                     <Route path="reports" element={<div>Reports</div>} />
                     <Route path="*" element={<Navigate to="/district-admin/dashboard" replace />} />
                   </Routes>
                 </DashboardLayout>
               </ProtectedRoute>
             }
-          /> */}
+          />
 
           {/* Catch all - Redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />

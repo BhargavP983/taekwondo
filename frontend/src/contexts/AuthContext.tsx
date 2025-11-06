@@ -66,9 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string, rememberMe: boolean) => {
     const response = await fetch('http://localhost:5000/api/auth/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
 
@@ -93,8 +91,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       navigate('/admin/dashboard');
     } else if (result.data.user.role === 'state_admin') {
       navigate('/state-admin/dashboard');
-    } else {
+    } else if (result.data.user.role === 'district_admin') {
       navigate('/district-admin/dashboard');
+    } else {
+      navigate('/');
     }
   };
 

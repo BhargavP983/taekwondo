@@ -61,7 +61,6 @@ const cadetSchema = new Schema<ICadet>(
     },
     parentGuardianName: {
       type: String,
-      required: true,
       trim: true
     },
     state: {
@@ -72,23 +71,19 @@ const cadetSchema = new Schema<ICadet>(
     },
     presentBeltGrade: {
       type: String,
-      required: true,
       trim: true
     },
     tfiIdCardNo: {
       type: String,
-      required: true,
       trim: true,
       unique: true
     },
     academicQualification: {
       type: String,
-      required: true,
       trim: true
     },
     schoolName: {
       type: String,
-      required: true,
       trim: true
     },
     formFileName: {

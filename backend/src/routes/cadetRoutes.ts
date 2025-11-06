@@ -4,26 +4,21 @@ import {
   getAllCadetEntries,
   getCadetEntryById,
   deleteCadetEntry,
-  getCadetStats
+  getCadetStats,
+  getCadetsForStateAdmin
 } from '../controllers/cadetController';
+import { authenticateToken, requireRole } from '../middleware/authMiddleware';
 
 const router = Router();
 
-// POST /api/cadets - Create new cadet entry
+// Public route (for form submission)
 router.post('/', createCadetEntry);
 
-// GET /api/cadets - Get all cadet entries
-router.get('/', getAllCadetEntries);
-
-// GET /api/cadets/stats - Get statistics
-router.get('/stats', getCadetStats);
-
-// GET /api/cadets/:entryId - Get specific entry
-router.get('/:entryId', getCadetEntryById);
-
-// GET /api/cadets/:entryId/download - Download application form
-// (download route removed because controller does not export `downloadApplicationForm`)
-// DELETE /api/cadets/:entryId - Delete entry
-router.delete('/:entryId', deleteCadetEntry);
+// Protected routes
+router.get('/', authenticateToken, getAllCadetEntries);
+router.get('/state', authenticateToken, requireRole('state_admin', 'super_admin'), getCadetsForStateAdmin);
+router.get('/stats', authenticateToken, getCadetStats);
+router.get('/:entryId', authenticateToken, getCadetEntryById);
+router.delete('/:entryId', authenticateToken, deleteCadetEntry);
 
 export default router;

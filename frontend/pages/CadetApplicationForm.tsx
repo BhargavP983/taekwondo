@@ -330,6 +330,7 @@ function CadetEntryForm() {
                 <option value="Kerala">Kerala</option>
                 <option value="Telangana">Telangana</option>
                 <option value="Maharashtra">Maharashtra</option>
+                <option value="Andhra Pradesh">Andhra Pradesh</option>
                 {/* Add more states */}
               </select>
             </div>

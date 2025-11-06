@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Cadet } from '../models/cadet';
 import { ApplicationFormGenerator } from '../services/cadetFormService';
+import { AuthRequest } from '../middleware/authMiddleware';
 
 const formGenerator = new ApplicationFormGenerator();
 
@@ -32,7 +33,7 @@ export const createCadetEntry = async (req: Request, res: Response) => {
     if (!gender || !name || !dateOfBirth || !parentGuardianName) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields'
+        message: 'Missing required fields: gender, name, dateOfBirth, age, state'
       });
     }
 
@@ -41,21 +42,22 @@ export const createCadetEntry = async (req: Request, res: Response) => {
 
     console.log(`📝 Creating cadet entry: ${entryId}`);
 
-    // Generate application form image
+    // Generate application form
     const formResult = await formGenerator.generateApplicationForm({
       entryId,
       gender,
-      weightCategory,
+      weightCategory: weightCategory || '',
       name: name.toUpperCase(),
       dateOfBirth,
       age,
-      weight,
-      parentGuardianName,
+      weight: weight || 0,
+      parentGuardianName: parentGuardianName || '',
       state,
-      presentBeltGrade,
-      tfiIdCardNo,
-      academicQualification,
-      schoolName
+      // district: district || '',
+      presentBeltGrade: presentBeltGrade || '',
+      tfiIdCardNo: tfiIdCardNo || '',
+      academicQualification: academicQualification || '',
+      schoolName: schoolName || ''
     });
 
     console.log(`✅ Form generated: ${formResult.fileName}`);
@@ -68,9 +70,10 @@ export const createCadetEntry = async (req: Request, res: Response) => {
       name: name.toUpperCase(),
       dateOfBirth: new Date(dateOfBirth),
       age: parseInt(age),
-      weight: parseFloat(weight),
+      weight: weight ? parseFloat(weight) : undefined,
       parentGuardianName,
       state,
+      // district,
       presentBeltGrade,
       tfiIdCardNo,
       academicQualification,
@@ -225,6 +228,47 @@ export const getCadetStats = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to fetch statistics'
+    });
+  }
+};
+
+export const getCadetsForStateAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const userState = (req.user as any)?.state;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    if (!userState) {
+      return res.status(400).json({
+        success: false,
+        message: 'State information not found'
+      });
+    }
+
+    // Filters
+    const filter: any = { state: userState };
+    if (req.query.gender) filter.gender = req.query.gender;
+
+    const cadets = await Cadet.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalCount = await Cadet.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      count: cadets.length,
+      total: totalCount,
+      page,
+      totalPages: Math.ceil(totalCount / limit),
+      data: cadets
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch entries'
     });
   }
 };

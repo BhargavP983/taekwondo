@@ -145,3 +145,151 @@ export const getRecentActivities = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+
+//state-admin controller
+export const getStateAdminStats = async (req: AuthRequest, res: Response) => {
+  try {
+    const userState = (req.user as any)?.state; // Get state from authenticated user
+
+    if (!userState) {
+      return res.status(400).json({
+        success: false,
+        message: 'State information not found for this admin'
+      });
+    }
+
+    // Get total counts for this state
+    const totalCadets = await Cadet.countDocuments({ state: userState });
+    const totalPoomsae = await Poomsae.countDocuments({ stateOrg: userState });
+
+    // Get recent applications (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const recentCadets = await Cadet.countDocuments({
+      state: userState,
+      createdAt: { $gte: sevenDaysAgo }
+    });
+
+    const recentPoomsae = await Poomsae.countDocuments({
+      stateOrg: userState,
+      createdAt: { $gte: sevenDaysAgo }
+    });
+
+    // Get cadet breakdown by gender in this state
+    const cadetsByGender = await Cadet.aggregate([
+      { $match: { state: userState } },
+      { $group: { _id: '$gender', count: { $sum: 1 } } }
+    ]);
+
+    // Get cadet breakdown by district in this state
+    const cadetsByDistrict = await Cadet.aggregate([
+      { $match: { state: userState } },
+      { $group: { _id: '$district', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
+    // Get poomsae breakdown by division in this state
+    const poomsaeByDivision = await Poomsae.aggregate([
+      { $match: { stateOrg: userState } },
+      { $group: { _id: '$division', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Get poomsae breakdown by category
+    const poomsaeByCategory = await Poomsae.aggregate([
+      { $match: { stateOrg: userState } },
+      { $group: { _id: '$category', count: { $sum: 1 } } }
+    ]);
+
+    // Get recent registrations for this state
+    const recentRegistrations = await Cadet.find({ state: userState })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('entryId name state createdAt');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        state: userState,
+        overview: {
+          totalCadets,
+          totalPoomsae,
+          totalApplications: totalCadets + totalPoomsae,
+          recentCadets,
+          recentPoomsae
+        },
+        cadetsByGender,
+        cadetsByDistrict,
+        poomsaeByDivision,
+        poomsaeByCategory,
+        recentRegistrations
+      }
+    });
+  } catch (error: any) {
+    console.error('State admin stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch state statistics'
+    });
+  }
+};
+
+export const getStateAdminActivities = async (req: AuthRequest, res: Response) => {
+  try {
+    const userState = (req.user as any)?.state;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    if (!userState) {
+      return res.status(400).json({
+        success: false,
+        message: 'State information not found'
+      });
+    }
+
+    // Get recent cadet registrations in this state
+    const recentCadets = await Cadet.find({ state: userState })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select('entryId name state createdAt')
+      .lean();
+
+    // Get recent poomsae registrations in this state
+    const recentPoomsae = await Poomsae.find({ stateOrg: userState })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select('entryId name stateOrg createdAt')
+      .lean();
+
+    // Combine and sort activities
+    const activities = [
+      ...recentCadets.map(c => ({
+        type: 'cadet',
+        id: c.entryId,
+        title: `New Cadet Registration: ${c.name}`,
+        description: `State: ${c.state}`,
+        timestamp: c.createdAt
+      })),
+      ...recentPoomsae.map(p => ({
+        type: 'poomsae',
+        id: p.entryId,
+        title: `New Poomsae Registration: ${p.name}`,
+        description: `State: ${p.stateOrg}`,
+        timestamp: p.createdAt
+      }))
+    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, limit);
+
+    res.status(200).json({
+      success: true,
+      data: activities
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch activities'
+    });
+  }
+};

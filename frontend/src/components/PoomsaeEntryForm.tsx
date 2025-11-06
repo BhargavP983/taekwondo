@@ -308,36 +308,36 @@ function PoomsaeEntryForm() {
           {/* Belt Grade, TFI ID, Dan Certificate */}
           <div className="grid md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded">
             <div>
-              <label className="block text-sm font-medium mb-2">Current Belt Grade *</label>
-              <input type="text" name="currentBeltGrade" value={formData.currentBeltGrade} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., 4th Dan" required />
+              <label className="block text-sm font-medium mb-2">Current Belt Grade </label>
+              <input type="text" name="currentBeltGrade" value={formData.currentBeltGrade} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., 4th Dan" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">TFI ID No. *</label>
-              <input type="text" name="tfiIdNo" value={formData.tfiIdNo} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+              <label className="block text-sm font-medium mb-2">TFI ID No. </label>
+              <input type="text" name="tfiIdNo" value={formData.tfiIdNo} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Dan Certificate No. *</label>
-              <input type="text" name="danCertificateNo" value={formData.danCertificateNo} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+              <label className="block text-sm font-medium mb-2">Dan Certificate No. </label>
+              <input type="text" name="danCertificateNo" value={formData.danCertificateNo} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
           </div>
 
           {/* Academic Qualification, College, Board/University */}
           <div className="grid md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Academic Qualification *</label>
-              <input type="text" name="academicQualification" value={formData.academicQualification} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., B.Tech" required />
+              <label className="block text-sm font-medium mb-2">Academic Qualification </label>
+              <input type="text" name="academicQualification" value={formData.academicQualification} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., B.Tech" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Name of College *</label>
-              <input type="text" name="nameOfCollege" value={formData.nameOfCollege} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+              <label className="block text-sm font-medium mb-2">Name of College </label>
+              <input type="text" name="nameOfCollege" value={formData.nameOfCollege} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Name of Board / University *</label>
-              <input type="text" name="nameOfBoardUniversity" value={formData.nameOfBoardUniversity} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+              <label className="block text-sm font-medium mb-2">Name of Board / University </label>
+              <input type="text" name="nameOfBoardUniversity" value={formData.nameOfBoardUniversity} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
           </div>
 

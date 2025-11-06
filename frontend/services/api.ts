@@ -245,4 +245,34 @@ export const cadetsAPI = {
   }
 };
 
-// Duplicate poomsaeAPI removed — the earlier `poomsaeAPI` declaration above provides getAll, getStats and delete.
+// State Admin APIs
+export const stateAdminAPI = {
+  getStats: async () => {
+    const response = await fetch(`${API_BASE_URL}/dashboard/state/stats`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  getActivities: async (limit = 10) => {
+    const response = await fetch(`${API_BASE_URL}/dashboard/state/activities?limit=${limit}`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  getCadets: async (page = 1, limit = 10) => {
+    const response = await fetch(`${API_BASE_URL}/cadets/state?page=${page}&limit=${limit}`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  },
+
+  getPoomsae: async (page = 1, limit = 10) => {
+    const userState = localStorage.getItem('userState'); // You'll need to store this on login
+    const response = await fetch(`${API_BASE_URL}/poomsae?page=${page}&limit=${limit}&state=${userState}`, {
+      headers: getAuthHeaders()
+    });
+    return response.json();
+  }
+};

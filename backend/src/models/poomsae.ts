@@ -71,7 +71,6 @@ const poomsaeSchema = new Schema<IPoomsae>(
     },
     parentGuardianName: {
       type: String,
-      required: true,
       trim: true
     },
     mobileNo: {
@@ -82,33 +81,27 @@ const poomsaeSchema = new Schema<IPoomsae>(
     },
     currentBeltGrade: {
       type: String,
-      required: true,
       trim: true
     },
     tfiIdNo: {
       type: String,
-      required: true,
       trim: true,
       unique: true
     },
     danCertificateNo: {
       type: String,
-      required: true,
       trim: true
     },
     academicQualification: {
       type: String,
-      required: true,
       trim: true
     },
     nameOfCollege: {
       type: String,
-      required: true,
       trim: true
     },
     nameOfBoardUniversity: {
       type: String,
-      required: true,
       trim: true
     },
     formFileName: {
