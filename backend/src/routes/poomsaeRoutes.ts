@@ -14,9 +14,9 @@ const router = Router();
 router.post('/', createPoomsaeEntry);
 
 // Protected routes
-router.get('/', authenticateToken, getAllPoomsaeEntries);
-router.get('/stats', authenticateToken, getPoomsaeStats);
-router.get('/:entryId', authenticateToken, getPoomsaeEntryById);
-router.delete('/:entryId', authenticateToken, deletePoomsaeEntry);
+router.get('/', authenticateToken(), getAllPoomsaeEntries);
+router.get('/stats', authenticateToken(), getPoomsaeStats);
+router.get('/:entryId', authenticateToken(), getPoomsaeEntryById);
+router.delete('/:entryId', authenticateToken(), deletePoomsaeEntry);
 
 export default router;
