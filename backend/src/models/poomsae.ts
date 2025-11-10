@@ -10,15 +10,16 @@ export interface IPoomsae extends Document {
   dateOfBirth: Date;
   age: number;
   weight: number;
-  parentGuardianName: string;
+  parentGuardianName?: string;
   mobileNo: string;
-  currentBeltGrade: string;
-  tfiIdNo: string;
-  danCertificateNo: string;
-  academicQualification: string;
-  nameOfCollege: string;
-  nameOfBoardUniversity: string;
+  currentBeltGrade?: string;
+  tfiIdNo?: string;
+  danCertificateNo?: string;
+  academicQualification?: string;
+  nameOfCollege?: string;
+  nameOfBoardUniversity?: string;
   formFileName?: string;
+  district: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,6 +58,12 @@ const poomsaeSchema = new Schema<IPoomsae>(
       required: true,
       trim: true
     },
+    district: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true
+    },
     dateOfBirth: {
       type: Date,
       required: true
@@ -85,8 +92,7 @@ const poomsaeSchema = new Schema<IPoomsae>(
     },
     tfiIdNo: {
       type: String,
-      trim: true,
-      unique: true
+      trim: true
     },
     danCertificateNo: {
       type: String,
@@ -117,5 +123,10 @@ const poomsaeSchema = new Schema<IPoomsae>(
 poomsaeSchema.index({ name: 1 });
 poomsaeSchema.index({ division: 1 });
 poomsaeSchema.index({ createdAt: -1 });
+// Ensure uniqueness only for non-empty TFI ID values
+poomsaeSchema.index(
+  { tfiIdNo: 1 },
+  { unique: true, partialFilterExpression: { tfiIdNo: { $exists: true, $gt: '' } } }
+);
 
 export const Poomsae = mongoose.model<IPoomsae>('Poomsae', poomsaeSchema);

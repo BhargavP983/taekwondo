@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-
-// Adjust to your actual API import location!
-const API_BASE = '/api/certificates'; // Adjust for your deployment
+import { certificateApi } from '../services/api';
 
 export default function CertificateGenerator() {
   const [formData, setFormData] = useState({
@@ -19,19 +17,11 @@ export default function CertificateGenerator() {
     setCertificate(null);
     setLoading(true);
     try {
-      // POST to your certificates/generate endpoint
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : undefined
-        },
-        body: JSON.stringify(formData)
-      });
-      const data = await response.json();
-      if (!data.success) throw new Error(data.message || 'Backend error');
-      setCertificate(data.data);
+      const apiResponse = await certificateApi.generate(formData);
+      if (!apiResponse.success) throw new Error(apiResponse.message || 'Backend error');
+      // Normalize previewUrl (backend already sends absolute) fallback if missing
+      const previewUrl = apiResponse.data.previewUrl || `http://localhost:5000${apiResponse.data.filePath}`;
+      setCertificate({ ...apiResponse.data, previewUrl });
     } catch (err: any) {
       setError(err.message || 'Failed to generate certificate');
     } finally {
@@ -40,24 +30,22 @@ export default function CertificateGenerator() {
   };
 
   const handleDownload = () => {
-    if (certificate && certificate.previewUrl) {
-      const link = document.createElement('a');
-      link.href = certificate.previewUrl;
-      link.download = `certificate-${certificate.serial}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    if (!certificate) return;
+    const url = certificate.previewUrl || `http://localhost:5000${certificate.filePath}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `certificate-${certificate.serial}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handlePrint = () => {
-    if (certificate && certificate.previewUrl) {
-      const printWindow = window.open(certificate.previewUrl, '_blank');
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
-      }
+    if (!certificate) return;
+    const url = certificate.previewUrl || `http://localhost:5000${certificate.filePath}`;
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) {
+      printWindow.onload = () => printWindow.print();
     }
   };
 

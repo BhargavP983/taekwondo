@@ -21,7 +21,7 @@ import SuperAdminDashboard from './pages/dashboards/SuperAdminDashboard';
 
 // Dashboard Page Components
 import UserManagement from './pages/dashboards/userManagement';
-import CadetApplications from './pages/dashboards/cadetApplications';
+import CadetApplications from './pages/dashboards/CadetApplications';
 import PoomsaeApplications from './pages/dashboards/PoomsaeApplications';
 import GenerateCertificate from './pages/GenerateCertificate';
 
@@ -29,10 +29,15 @@ import GenerateCertificate from './pages/GenerateCertificate';
 import StateAdminDashboard from './pages/dashboards/StateAdminDashboard';
 import StateAdminCadetApplications from './pages/dashboards/StateAdminCadetApplications';
 import StateAdminPoomsaeApplications from './pages/dashboards/StateAdminPoomsaeApplications';
+
+// District Admin Dashboard Pages
+import DistrictAdminDashboard from './pages/dashboards/DistrictAdminDashboard';
 import DistrictAdminManagement from './pages/dashboards/DistrictAdminManagement';
 
 import TestPage from './pages/dashboards/TestPage';
 import CertificateGenerator from './pages/GenerateCertificate';
+import CertificateList from './src/components/Certificatelist';
+import DistrictCertificatesPage from './src/components/DistrictCertificatesPage';
 
 function App() {
   return (
@@ -51,7 +56,7 @@ function App() {
           <Route
             path="/admin/*"
             element={
-              <ProtectedRoute allowedRoles={['super_admin']}>
+              <ProtectedRoute allowedRoles={['superAdmin']}>
                 <DashboardLayout>
                   <Routes>
                     <Route path="dashboard" element={<SuperAdminDashboard />} />
@@ -73,7 +78,7 @@ function App() {
           <Route
             path="/state-admin/*"
             element={
-              <ProtectedRoute allowedRoles={['state_admin', 'super_admin']}>
+              <ProtectedRoute allowedRoles={['stateAdmin', 'superAdmin']}>
                 <DashboardLayout>
                   <Routes>
                     <Route path="dashboard" element={<StateAdminDashboard />} />
@@ -82,12 +87,8 @@ function App() {
                     <Route path="district-admins" element={<DistrictAdminManagement />} />
                     <Route
                       path="certificates/generate"
-                      element={
-                        // <ProtectedRoute allowedRoles={['state_admin', 'super_admin']}>
-                          <CertificateGenerator />
-                        // </ProtectedRoute>
-                      }
-                    />                   
+                      element={<CertificateGenerator />}
+                    />
                     <Route path="reports" element={<div className="p-8 text-center">Reports Coming Soon</div>} />
                     <Route path="*" element={<Navigate to="/state-admin/dashboard" replace />} />
                   </Routes>
@@ -100,10 +101,14 @@ function App() {
           <Route
             path="/district-admin/*"
             element={
-              <ProtectedRoute allowedRoles={['district_admin', 'state_admin', 'super_admin']}>
+              <ProtectedRoute allowedRoles={['districtAdmin', 'stateAdmin', 'superAdmin']}>
                 <DashboardLayout>
                   <Routes>
-                    {/* <Route path="dashboard" element={<DistrictAdminDashboard />} /> */}
+                    <Route path="dashboard" element={<DistrictAdminDashboard />} />
+                    <Route path="/district-admin/certificates" element={<DistrictCertificatesPage />} />
+                    <Route path="applications/cadet" element={<CadetApplications />} />
+                    <Route path="applications/poomsae" element={<PoomsaeApplications />} />
+                    <Route path="manage" element={<DistrictAdminManagement />} />
                     <Route path="reports" element={<div>Reports</div>} />
                     <Route path="*" element={<Navigate to="/district-admin/dashboard" replace />} />
                   </Routes>

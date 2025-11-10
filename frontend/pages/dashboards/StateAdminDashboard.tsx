@@ -3,25 +3,35 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { stateAdminAPI } from '../../services/api';
 
+// Align with backend DashboardStats shape (see dashboardController.ts)
+interface BackendDashboardStats {
+  totalUsers: number;
+  totalCadets: number;
+  totalPoomsae: number;
+  activeUsers: number;
+  recentCadets: number;
+  recentPoomsae: number;
+  usersByRole: Array<{ role: string; count: number }>;
+}
+
 interface StateStats {
-  state: string;
+  state?: string;
   overview: {
+    totalApplications: number;
     totalCadets: number;
     totalPoomsae: number;
-    totalApplications: number;
     recentCadets: number;
     recentPoomsae: number;
+    activeUsers: number;
+    totalUsers: number;
   };
-  cadetsByGender: Array<{ _id: string; count: number }>;
-  cadetsByDistrict: Array<{ _id: string; count: number }>;
-  poomsaeByDivision: Array<{ _id: string; count: number }>;
-  poomsaeByCategory: Array<{ _id: string; count: number }>;
-  recentRegistrations: Array<{
-    entryId: string;
-    name: string;
-    state: string;
-    createdAt: string;
-  }>;
+  usersByRole: Array<{ role: string; count: number }>;
+  activities: Activity[];
+  cadetsByDistrict?: Array<{ _id: string; count: number }>;
+  cadetsByGender?: Array<{ _id: string; count: number }>;
+  poomsaeByDivision?: Array<{ _id: string; count: number }>;
+  poomsaeByCategory?: Array<{ _id: string; count: number }>;
+  recentRegistrations?: Array<{ entryId: string; name: string; state: string; district?: string; createdAt: string }>;
 }
 
 interface Activity {
@@ -46,17 +56,36 @@ const StateAdminDashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsResponse, activitiesResponse] = await Promise.all([
+      const [rawStats, activitiesResponse] = await Promise.all([
         stateAdminAPI.getStats(),
         stateAdminAPI.getActivities(10)
       ]);
 
-      if (statsResponse.success) {
-        setStats(statsResponse.data);
+      // Defensive: backend returns { success, data } where data is DashboardStats (no overview field)
+      if (rawStats?.success && rawStats.data) {
+        const d: BackendDashboardStats = rawStats.data;
+        const normalized: StateStats = {
+          state: user?.state,
+          overview: {
+            totalApplications: (d.totalCadets || 0) + (d.totalPoomsae || 0),
+            totalCadets: d.totalCadets || 0,
+            totalPoomsae: d.totalPoomsae || 0,
+            recentCadets: d.recentCadets || 0,
+            recentPoomsae: d.recentPoomsae || 0,
+            activeUsers: d.activeUsers || 0,
+            totalUsers: d.totalUsers || 0
+          },
+          usersByRole: d.usersByRole || [],
+          activities: []
+        };
+        setStats(normalized);
+      } else {
+        console.warn('Unexpected stats response shape:', rawStats);
       }
 
-      if (activitiesResponse.success) {
-        setActivities(activitiesResponse.data);
+      if (activitiesResponse?.success) {
+        setActivities(activitiesResponse.data || []);
+        setStats(prev => prev ? { ...prev, activities: activitiesResponse.data || [] } : prev);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load dashboard');
@@ -132,7 +161,7 @@ const StateAdminDashboard: React.FC = () => {
           <h2 className="text-2xl font-bold mb-2">Welcome, {user?.name}!</h2>
           <p className="text-blue-100">State Admin for {stats?.state || user?.state}</p>
           <p className="text-sm text-blue-200 mt-2">
-            Managing {stats?.overview.totalApplications || 0} total applications
+            Managing {stats?.overview?.totalApplications ?? 0} total applications
           </p>
         </div>
 
@@ -144,7 +173,7 @@ const StateAdminDashboard: React.FC = () => {
               <div>
                 <p className="text-gray-600 text-sm font-medium">Total Applications</p>
                 <p className="text-3xl font-bold text-purple-600 mt-2">
-                  {stats?.overview.totalApplications || 0}
+                  {stats?.overview?.totalApplications ?? 0}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
                   +{(stats?.overview.recentCadets || 0) + (stats?.overview.recentPoomsae || 0)} this week
@@ -164,7 +193,7 @@ const StateAdminDashboard: React.FC = () => {
               <div>
                 <p className="text-gray-600 text-sm font-medium">Cadet Applications</p>
                 <p className="text-3xl font-bold text-green-600 mt-2">
-                  {stats?.overview.totalCadets || 0}
+                  {stats?.overview?.totalCadets ?? 0}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
                   +{stats?.overview.recentCadets || 0} this week
@@ -182,7 +211,7 @@ const StateAdminDashboard: React.FC = () => {
               <div>
                 <p className="text-gray-600 text-sm font-medium">Poomsae Applications</p>
                 <p className="text-3xl font-bold text-orange-600 mt-2">
-                  {stats?.overview.totalPoomsae || 0}
+                  {stats?.overview?.totalPoomsae ?? 0}
                 </p>
                 <p className="text-xs text-orange-600 mt-1">
                   +{stats?.overview.recentPoomsae || 0} this week
@@ -293,6 +322,7 @@ const StateAdminDashboard: React.FC = () => {
                         <p className="font-semibold text-sm">{reg.name}</p>
                         <p className="text-xs text-gray-600">{reg.entryId}</p>
                         <p className="text-xs text-gray-500 mt-1">📍 {reg.state}</p>
+                        <p className="text-xs text-gray-500 mt-1">📍 {reg.district}</p>
                       </div>
                       <span className="text-xs text-gray-400">
                         {formatDate(reg.createdAt)}

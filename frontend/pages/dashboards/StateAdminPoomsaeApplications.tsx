@@ -1,40 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { poomsaeAPI } from '../../services/api';
+import { poomsaeAPI, BACKEND_URL } from '../../services/api';
 import { useAuth } from '../../src/contexts/AuthContext';
-
-interface Poomsae {
-  _id: string;
-  entryId: string;
-  name: string;
-  division: string;
-  category: string;
-  gender: string;
-  age: number;
-  weight: number;
-  stateOrg: string;
-  parentGuardianName: string;
-  mobileNo: string;
-  currentBeltGrade: string;
-  tfiIdNo: string;
-  danCertificateNo: string;
-  academicQualification: string;
-  nameOfCollege: string;
-  nameOfBoardUniversity: string;
-  formFileName?: string;
-  createdAt: string;
-}
+import Toast from '../../src/components/Toast';
+import type { Poomsae as TPoomsae } from '../../src/types/api';
 
 const StateAdminPoomsaeApplications: React.FC = () => {
   const { user } = useAuth();
-  const [poomsae, setPoomsae] = useState<Poomsae[]>([]);
+  const [poomsae, setPoomsae] = useState<TPoomsae[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDivision, setFilterDivision] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [filterDistrict, setFilterDistrict] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedPoomsae, setSelectedPoomsae] = useState<Poomsae | null>(null);
+  const [selectedPoomsae, setSelectedPoomsae] = useState<TPoomsae | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     fetchPoomsae();
@@ -47,14 +29,16 @@ const StateAdminPoomsaeApplications: React.FC = () => {
       
       if (response.success) {
         // Filter by user's state
-        const statePoomsae = response.data.filter(
-          (p: Poomsae) => p.stateOrg === user?.state
+        const statePoomsae = (response.data as TPoomsae[]).filter(
+          (p: TPoomsae) => p.stateOrg === user?.state
         );
         setPoomsae(statePoomsae);
         setTotalPages(response.totalPages || 1);
+        setToast({ type: 'success', message: 'Poomsae applications loaded' });
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch poomsae applications');
+      setToast({ type: 'error', message: err.message || 'Failed to fetch poomsae applications' });
     } finally {
       setLoading(false);
     }
@@ -63,14 +47,16 @@ const StateAdminPoomsaeApplications: React.FC = () => {
   const filteredPoomsae = poomsae.filter((entry) => {
     const matchesSearch = entry.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          entry.entryId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.tfiIdNo.toLowerCase().includes(searchTerm.toLowerCase());
+                         (entry.tfiIdNo || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDivision = filterDivision === 'all' || entry.division === filterDivision;
     const matchesCategory = filterCategory === 'all' || entry.category === filterCategory;
-    return matchesSearch && matchesDivision && matchesCategory;
+    const matchesDistrict = filterDistrict === 'all' || entry.district === filterDistrict;
+    return matchesSearch && matchesDivision && matchesCategory && matchesDistrict;
   });
 
   const divisions = ['Under 30', 'Under 40', 'Under 50', 'Under 60', 'Under 65', 'Over 65', 'Over 30'];
   const categories = ['Individual', 'Pair', 'Group'];
+  const uniqueDistricts = Array.from(new Set(poomsae.map(p => p.district).filter(Boolean))).sort();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -143,7 +129,7 @@ const StateAdminPoomsaeApplications: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
             <input
@@ -177,6 +163,19 @@ const StateAdminPoomsaeApplications: React.FC = () => {
               <option value="all">All Categories</option>
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
+            <select
+              value={filterDistrict}
+              onChange={(e) => setFilterDistrict(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+              <option value="all">All Districts</option>
+              {uniqueDistricts.map(district => (
+                <option key={district} value={district}>{district}</option>
               ))}
             </select>
           </div>
@@ -245,7 +244,7 @@ const StateAdminPoomsaeApplications: React.FC = () => {
                         </button>
                         {entry.formFileName && (
                           <a
-                            href={`http://localhost:5000/forms/${entry.formFileName}`}
+                            href={`${BACKEND_URL}/forms/${entry.formFileName}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-green-600 hover:text-green-800"
@@ -384,7 +383,7 @@ const StateAdminPoomsaeApplications: React.FC = () => {
 
               {selectedPoomsae.formFileName && (
                 <a
-                  href={`http://localhost:5000/forms/${selectedPoomsae.formFileName}`}
+                  href={`${BACKEND_URL}/forms/${selectedPoomsae.formFileName}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full bg-purple-600 text-white text-center px-4 py-3 rounded-lg hover:bg-purple-700 transition"
@@ -395,6 +394,14 @@ const StateAdminPoomsaeApplications: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={4000}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

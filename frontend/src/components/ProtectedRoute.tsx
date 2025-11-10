@@ -13,6 +13,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
+  // Add debug logs
+  console.log('ProtectedRoute State:', {
+    isAuthenticated,
+    userRole: user?.role,
+    isLoading,
+    allowedRoles
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -24,11 +32,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
+    console.log('Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    console.log('Access denied - User role:', user.role);
+    console.log('Allowed roles:', allowedRoles);
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -36,6 +47,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           <p className="text-gray-600 mb-4">Access Denied</p>
           <p className="text-sm text-gray-500">
             You don't have permission to access this page.
+          </p>
+          <p className="text-xs text-gray-400 mt-2">
+            Current role: {user.role}
           </p>
         </div>
       </div>

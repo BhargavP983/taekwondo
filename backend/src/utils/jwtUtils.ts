@@ -1,16 +1,8 @@
 import jwt from 'jsonwebtoken';
+import { JWTPayload, TokenPayload } from '../types/jwt';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = '7d'; // 7 days
-
-export interface JWTPayload {
-  userId: string;
-  email: string;
-  role: string;
-  name: string;
-  state?: string;
-  district?: string;
-}
 
 export const generateToken = (payload: JWTPayload): string => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });

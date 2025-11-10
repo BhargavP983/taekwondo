@@ -1,27 +1,18 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { User } from '../models/user';
 import { generateToken } from '../utils/jwtUtils';
 import { AuthRequest } from '../middleware/authMiddleware';
+import { ConflictError, NotFoundError } from '../types/errors';
+import { UserData, ApiResponse, FilterQuery } from '../types/api';
 
-export const createUser = async (req: AuthRequest, res: Response) => {
+export const createUser = async (req: AuthRequest, res: Response<ApiResponse<UserData>>, next: NextFunction) => {
   try {
-    const { email, password, name, role, state, district } = req.body;
-
-    // Validate required fields
-    if (!email || !password || !name || !role) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email, password, name, and role are required'
-      });
-    }
-
+    const { email, password, name, role, state, district } = req.body as UserData;
+    
     // Check if user exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User with this email already exists'
-      });
+      throw new ConflictError('User with this email already exists');
     }
 
     // Create user (Mongoose handles hashing in pre-save hook)
@@ -38,13 +29,10 @@ export const createUser = async (req: AuthRequest, res: Response) => {
     res.status(201).json({
       success: true,
       message: 'User created successfully',
-      data: user.toJSON()
+      data: user.toJSON() as UserData
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to create user'
-    });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -295,9 +283,11 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
 // List district admins for this state (state_admin & super_admin)
 export const listDistrictAdmins = async (req: AuthRequest, res: Response) => {
   try {
-    const query: any = { role: 'district_admin' };
-    // state_admin can see only within their state
-    if ((req.user as any)?.role === 'state_admin') query.state = (req.user as any).state;
+    const query: { role: string; state?: string } = { role: 'districtAdmin' };
+    // stateAdmin can see only within their state
+    if (req.user?.role === 'stateAdmin' && req.user.state) {
+      query.state = req.user.state;
+    }
 
     const users = await User.find(query).select('-password');
     res.status(200).json({ success: true, data: users });
@@ -316,14 +306,14 @@ export const createDistrictAdmin = async (req: AuthRequest, res: Response) => {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ success: false, message: 'Email exists' });
 
-    const adminState = (req.user as any)?.role === 'super_admin' ? req.body.state : (req.user as any)?.state;
+    const adminState = (req.user as any)?.role === 'superAdmin' ? req.body.state : (req.user as any)?.state;
     if (!adminState) {
       console.log('DEBUG req.user:', req.user);  // Add this log for debugging!
       return res.status(422).json({ success: false, message: 'State is required' });
     }
     const user = await User.create({
       name, email, password,
-      role: 'district_admin',
+      role: 'districtAdmin',
       state: adminState,
       district,
       isActive: true
@@ -343,10 +333,10 @@ export const updateDistrictAdmin = async (req: AuthRequest, res: Response) => {
 
     // Fetch and check ownership
     const admin = await User.findById(userId);
-    if (!admin || admin.role !== 'district_admin') {
+    if (!admin || admin.role !== 'districtAdmin') {
       return res.status(404).json({ success: false, message: 'District admin not found' });
     }
-    if ((req.user as any)?.role === 'state_admin' && admin.state !== (req.user as any)?.state) {
+    if (req.user?.role === 'stateAdmin' && admin.state !== req.user?.state) {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
 
@@ -370,10 +360,10 @@ export const deleteDistrictAdmin = async (req: AuthRequest, res: Response) => {
     const { userId } = req.params;
     const admin = await User.findById(userId);
 
-    if (!admin || admin.role !== 'district_admin') {
+    if (!admin || admin.role !== 'districtAdmin') {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    if ((req.user as any)?.role === 'state_admin' && admin.state !== (req.user as any)?.state) {
+    if ((req.user as any)?.role === 'stateAdmin' && admin.state !== (req.user as any)?.state) {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
 
@@ -390,10 +380,10 @@ export const toggleDistrictAdmin = async (req: AuthRequest, res: Response) => {
     const { userId } = req.params;
     const admin = await User.findById(userId);
 
-    if (!admin || admin.role !== 'district_admin') {
+    if (!admin || admin.role !== 'districtAdmin') {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    if ((req.user as any)?.role === 'state_admin' && admin.state !== (req.user as any)?.state) {
+    if ((req.user as any)?.role === 'stateAdmin' && admin.state !== (req.user as any)?.state) {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
 

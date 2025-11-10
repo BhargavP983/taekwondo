@@ -12,7 +12,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSuccess 
     name: '',
     email: '',
     password: '',
-    role: 'district_admin',
+    role: 'districtAdmin',
     state: '',
     district: ''
   });
@@ -36,17 +36,17 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSuccess 
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
-    if (formData.role === 'state_admin' && !formData.state) {
+    if (formData.role === 'stateAdmin' && !formData.state) {
       setError('State is required for State Admin');
       return;
     }
 
-    if (formData.role === 'district_admin' && (!formData.state || !formData.district)) {
+    if (formData.role === 'districtAdmin' && (!formData.state || !formData.district)) {
       setError('State and District are required for District Admin');
       return;
     }
@@ -54,7 +54,10 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSuccess 
     setLoading(true);
 
     try {
-      const response = await usersAPI.create(formData);
+      const response = await usersAPI.create({
+        ...formData,
+        isActive: true
+      } as any);
 
       if (response.success) {
         alert('User created successfully!');
@@ -62,7 +65,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSuccess 
           name: '',
           email: '',
           password: '',
-          role: 'district_admin',
+          role: 'districtAdmin',
           state: '',
           district: ''
         });
@@ -146,10 +149,12 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSuccess 
                 value={formData.password}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="Min. 6 characters"
+                placeholder="Min. 8 characters"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Min. 8 characters with uppercase, lowercase, number, and special character
+              </p>
             </div>
 
             {/* Role */}
@@ -164,14 +169,14 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSuccess 
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
               >
-                <option value="district_admin">District Admin</option>
-                <option value="state_admin">State Admin</option>
-                <option value="super_admin">Super Admin</option>
+                <option value="districtAdmin">District Admin</option>
+                <option value="stateAdmin">State Admin</option>
+                <option value="superAdmin">Super Admin</option>
               </select>
             </div>
 
             {/* State (for State Admin and District Admin) */}
-            {(formData.role === 'state_admin' || formData.role === 'district_admin') && (
+            {(formData.role === 'stateAdmin' || formData.role === 'districtAdmin') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   State *
@@ -195,7 +200,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSuccess 
             )}
 
             {/* District (for District Admin only) */}
-            {formData.role === 'district_admin' && (
+            {formData.role === 'districtAdmin' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   District *

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import HealthBadge from './HealthBadge';
 import { Link, useLocation } from 'react-router-dom';
 
 interface HeaderProps {
@@ -67,6 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                 <span className={`font-bold text-lg text-white ${isSticky ? 'text-lg' : 'text-xl'}`}>
                   AP Taekwondo
                 </span>
+                <div className="ml-4 hidden md:block"><HealthBadge /></div>
               </Link>
 
               <button
@@ -241,6 +243,8 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                   </Link>
                 </li>
               </ul>
+              {/* Mobile health badge */}
+              <div className="mt-4 md:hidden"><HealthBadge /></div>
             </div>
           </div>
         </nav>

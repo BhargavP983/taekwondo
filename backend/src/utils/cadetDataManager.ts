@@ -13,6 +13,7 @@ export interface CadetEntry {
   weight: string;
   parentGuardianName: string;
   state: string;
+  district: string;
   presentBeltGrade: string;
   tfiIdCardNo: string;
   academicQualification: string;
@@ -38,12 +39,6 @@ export class CadetDataManager {
         fs.mkdirSync(dir, { recursive: true });
       }
 
-      if (fs.existsSync(DATA_FILE)) {
-        const fileData = fs.readFileSync(DATA_FILE, 'utf-8');
-        this.data = JSON.parse(fileData);
-      } else {
-        this.saveData();
-      }
       console.log(`📊 Cadet data initialized. Total entries: ${this.data.entries.length}`);
     } catch (error) {
       console.error('❌ Error initializing cadet data:', error);
@@ -65,7 +60,6 @@ export class CadetDataManager {
     };
 
     this.data.entries.push(fullEntry);
-    this.saveData();
 
     console.log(`✅ Cadet entry added: ${entryId}`);
     return entryId;
@@ -84,19 +78,10 @@ export class CadetDataManager {
     this.data.entries = this.data.entries.filter(entry => entry.entryId !== entryId);
     
     if (this.data.entries.length < initialLength) {
-      this.saveData();
       console.log(`🗑️ Cadet entry deleted: ${entryId}`);
       return true;
     }
     return false;
-  }
-
-  private static saveData() {
-    try {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(this.data, null, 2));
-    } catch (error) {
-      console.error('❌ Error saving cadet data:', error);
-    }
   }
 
   static getStats() {

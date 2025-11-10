@@ -1,4 +1,6 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
+import Toast from './Toast';
+import { poomsaeAPI } from '../../services/api';
 
 interface PoomsaeFormData {
   division: string;
@@ -17,6 +19,7 @@ interface PoomsaeFormData {
   academicQualification: string;
   nameOfCollege: string;
   nameOfBoardUniversity: string;
+  district: string;
 }
 
 function PoomsaeEntryForm() {
@@ -36,11 +39,14 @@ function PoomsaeEntryForm() {
     danCertificateNo: '',
     academicQualification: '',
     nameOfCollege: '',
-    nameOfBoardUniversity: ''
+    nameOfBoardUniversity: '',
+    district: ''
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [tfiIdError, setTfiIdError] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [applicationNumber, setApplicationNumber] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
@@ -63,7 +69,8 @@ function PoomsaeEntryForm() {
       danCertificateNo: 'DAN-2023-12345',
       academicQualification: 'B.Tech',
       nameOfCollege: 'VIT University',
-      nameOfBoardUniversity: 'VIT University'
+      nameOfBoardUniversity: 'VIT University',
+      district: 'Krishna'
     };
     
     setFormData(dummyData);
@@ -93,6 +100,10 @@ function PoomsaeEntryForm() {
       }
       return updated;
     });
+
+    if (name === 'tfiIdNo' && tfiIdError) {
+      setTfiIdError('');
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -104,27 +115,47 @@ function PoomsaeEntryForm() {
     console.log('📤 Submitting Poomsae form data:', formData);
 
     try {
-      const response = await fetch('http://localhost:5000/api/poomsae', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const result = await poomsaeAPI.create({
+        division: formData.division,
+        category: formData.category,
+        gender: formData.gender as any,
+        name: formData.name,
+        stateOrg: formData.stateOrg,
+        district: formData.district,
+        dateOfBirth: formData.dateOfBirth,
+        age: formData.age,
+        weight: formData.weight,
+        parentGuardianName: formData.parentGuardianName,
+        mobileNo: formData.mobileNo,
+        currentBeltGrade: formData.currentBeltGrade,
+        tfiIdNo: formData.tfiIdNo,
+        danCertificateNo: formData.danCertificateNo,
+        academicQualification: formData.academicQualification,
+        nameOfCollege: formData.nameOfCollege,
+        nameOfBoardUniversity: formData.nameOfBoardUniversity
+      } as any);
 
-      const result = await response.json();
       console.log('📥 Response:', result);
 
       if (result.success) {
-        setApplicationNumber(result.data.applicationNumber);
-        setDownloadUrl(result.data.downloadUrl);
+        setApplicationNumber(result.data.applicationNumber || result.data.entryId);
+        setDownloadUrl(result.data.downloadUrl || '');
         setShowSuccess(true);
-        console.log('✅ Success! Application Number:', result.data.applicationNumber);
+        console.log('✅ Success! Application Number:', result.data.applicationNumber || result.data.entryId);
       } else {
-        setError(result.message || 'Registration failed');
+        const msg = result.message || 'Registration failed';
+        setError(msg);
+        if (/TFI ID.*exists/i.test(msg)) {
+          setTfiIdError('This TFI ID is already registered. Leave it blank if you don\'t have one or enter a different ID.');
+          setToast({ type: 'error', message: 'Duplicate TFI ID. Please leave it blank or use a different ID.' });
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Failed to submit form');
+      if (/TFI ID.*exists/i.test(err.message || '')) {
+        setTfiIdError('This TFI ID is already registered. Leave it blank if you don\'t have one or enter a different ID.');
+        setToast({ type: 'error', message: 'Duplicate TFI ID. Please leave it blank or use a different ID.' });
+      }
       console.error('❌ Exception:', err);
     } finally {
       setLoading(false);
@@ -157,7 +188,8 @@ function PoomsaeEntryForm() {
       danCertificateNo: '',
       academicQualification: '',
       nameOfCollege: '',
-      nameOfBoardUniversity: ''
+      nameOfBoardUniversity: '',
+      district: '',
     });
     setShowSuccess(false);
     setError('');
@@ -203,6 +235,7 @@ function PoomsaeEntryForm() {
   }
 
   return (
+    <>
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="bg-white shadow-lg rounded-lg overflow-hidden">
         {/* Header */}
@@ -272,6 +305,11 @@ function PoomsaeEntryForm() {
               <label className="block text-sm font-medium mb-2">State / Orgn *</label>
               <input type="text" name="stateOrg" value={formData.stateOrg} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">District *</label>
+              <input type="text" name="district" value={formData.district} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+            </div>
           </div>
 
           {/* DOB, Age, Weight */}
@@ -310,16 +348,22 @@ function PoomsaeEntryForm() {
             <div>
               <label className="block text-sm font-medium mb-2">Current Belt Grade </label>
               <input type="text" name="currentBeltGrade" value={formData.currentBeltGrade} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., 4th Dan" />
+              {/* <p className="mt-1 text-xs text-gray-500">Optional. Provide your current belt or Dan rank if applicable.</p> */}
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">TFI ID No. </label>
               <input type="text" name="tfiIdNo" value={formData.tfiIdNo} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              {/* <p className="mt-1 text-xs text-gray-500">Optional. If provided, it must be unique. Leave blank if you don&apos;t have one.</p> */}
+              {tfiIdError && (
+                <p className="mt-1 text-sm text-red-600">{tfiIdError}</p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Dan Certificate No. </label>
               <input type="text" name="danCertificateNo" value={formData.danCertificateNo} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              {/* <p className="mt-1 text-xs text-gray-500">Optional. Provide if you have one.</p> */}
             </div>
           </div>
 
@@ -328,16 +372,19 @@ function PoomsaeEntryForm() {
             <div>
               <label className="block text-sm font-medium mb-2">Academic Qualification </label>
               <input type="text" name="academicQualification" value={formData.academicQualification} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., B.Tech" />
+              {/* <p className="mt-1 text-xs text-gray-500">Optional.</p> */}
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Name of College </label>
               <input type="text" name="nameOfCollege" value={formData.nameOfCollege} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              {/* <p className="mt-1 text-xs text-gray-500">Optional.</p> */}
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Name of Board / University </label>
               <input type="text" name="nameOfBoardUniversity" value={formData.nameOfBoardUniversity} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              {/* <p className="mt-1 text-xs text-gray-500">Optional.</p> */}
             </div>
           </div>
 
@@ -366,6 +413,15 @@ function PoomsaeEntryForm() {
         </form>
       </div>
     </div>
+    {toast && (
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        duration={5000}
+        onClose={() => setToast(null)}
+      />
+    )}
+    </>
   );
 }
 

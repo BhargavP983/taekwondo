@@ -12,9 +12,6 @@ router.get('/', authenticateToken(), getCertificates);
 // DELETE /api/certificates/:fileName - Delete specific certificate
 router.delete('/:fileName', deleteCertificate);
 
-router.get('/api/certificates', async (req, res) => {
-  const certificates = await Certificate.find();
-  res.status(200).json({ success: true, data: certificates });
-});
+// (Removed redundant /api/certificates nested route; root list already handled by GET '/')
 
 export default router;

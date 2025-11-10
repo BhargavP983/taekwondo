@@ -1,25 +1,7 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
+import { ICadetDocument } from './interfaces';
 
-export interface ICadet extends Document {
-  entryId: string;
-  gender: string;
-  weightCategory: string;
-  name: string;
-  dateOfBirth: Date;
-  age: number;
-  weight: number;
-  parentGuardianName: string;
-  state: string;
-  presentBeltGrade: string;
-  tfiIdCardNo: string;
-  academicQualification: string;
-  schoolName: string;
-  formFileName?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const cadetSchema = new Schema<ICadet>(
+const cadetSchema = new Schema<ICadetDocument>(
   {
     entryId: {
       type: String,
@@ -29,12 +11,12 @@ const cadetSchema = new Schema<ICadet>(
     },
     gender: {
       type: String,
-      enum: ['Boy', 'Girl'],
+      enum: ['male', 'female', 'other'],
       required: true
     },
     weightCategory: {
       type: String,
-      required: true,
+      required: false,
       trim: true
     },
     name: {
@@ -51,7 +33,7 @@ const cadetSchema = new Schema<ICadet>(
       type: Number,
       required: true,
       min: 5,
-      max: 18
+      max: 50
     },
     weight: {
       type: Number,
@@ -68,6 +50,12 @@ const cadetSchema = new Schema<ICadet>(
       required: true,
       trim: true,
       index: true
+    },
+    district: {
+      type: String,
+      trim: true,
+      index: true,
+      required: true
     },
     presentBeltGrade: {
       type: String,
@@ -97,5 +85,10 @@ const cadetSchema = new Schema<ICadet>(
 // Indexes for faster searches
 cadetSchema.index({ name: 1 });
 cadetSchema.index({ createdAt: -1 });
+// Ensure uniqueness only for non-empty TFI ID values (allow multiple blank strings)
+cadetSchema.index(
+  { tfiIdCardNo: 1 },
+  { unique: true, partialFilterExpression: { tfiIdCardNo: { $exists: true, $gt: '' } } }
+);
 
-export const Cadet = mongoose.model<ICadet>('Cadet', cadetSchema);
+export const Cadet = mongoose.model<ICadetDocument>('Cadet', cadetSchema);

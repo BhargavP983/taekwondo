@@ -36,7 +36,7 @@ const UserManagement: React.FC = () => {
       setLoading(true);
       const response = await usersAPI.getAll();
       if (response.success) {
-        setUsers(response.data);
+        setUsers(response.data as any);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch users');
@@ -86,11 +86,11 @@ const UserManagement: React.FC = () => {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'super_admin':
+      case 'superAdmin':
         return 'bg-red-100 text-red-700 border-red-300';
-      case 'state_admin':
+      case 'stateAdmin':
         return 'bg-blue-100 text-blue-700 border-blue-300';
-      case 'district_admin':
+      case 'districtAdmin':
         return 'bg-green-100 text-green-700 border-green-300';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-300';
@@ -98,9 +98,11 @@ const UserManagement: React.FC = () => {
   };
 
   const formatRole = (role: string) => {
-    return role.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    // Convert camelCase to Title Case
+    return role
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
   };
 
   const formatDate = (dateString?: string) => {
@@ -155,19 +157,19 @@ const UserManagement: React.FC = () => {
           <div className="bg-white p-4 rounded-lg shadow">
             <p className="text-gray-600 text-sm">Super Admins</p>
             <p className="text-2xl font-bold text-red-600">
-              {users.filter(u => u.role === 'super_admin').length}
+              {users.filter(u => u.role === 'superAdmin').length}
             </p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
             <p className="text-gray-600 text-sm">State Admins</p>
             <p className="text-2xl font-bold text-blue-600">
-              {users.filter(u => u.role === 'state_admin').length}
+              {users.filter(u => u.role === 'stateAdmin').length}
             </p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
             <p className="text-gray-600 text-sm">District Admins</p>
             <p className="text-2xl font-bold text-green-600">
-              {users.filter(u => u.role === 'district_admin').length}
+              {users.filter(u => u.role === 'districtAdmin').length}
             </p>
           </div>
         </div>
@@ -193,9 +195,9 @@ const UserManagement: React.FC = () => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value="all">All Roles</option>
-                <option value="super_admin">Super Admin</option>
-                <option value="state_admin">State Admin</option>
-                <option value="district_admin">District Admin</option>
+                <option value="superAdmin">Super Admin</option>
+                <option value="stateAdmin">State Admin</option>
+                <option value="districtAdmin">District Admin</option>
               </select>
             </div>
           </div>

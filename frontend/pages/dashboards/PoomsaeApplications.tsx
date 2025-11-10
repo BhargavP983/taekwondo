@@ -1,19 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { poomsaeAPI } from '../../services/api';
+import { poomsaeAPI, BACKEND_URL } from '../../services/api';
+import Toast from '../../src/components/Toast';
 
 interface Poomsae {
   _id: string;
   entryId: string;
-  name: string;
   division: string;
   category: string;
-  gender: string;
-  age: number;
+  gender: 'Male' | 'Female';
+  name: string;
   stateOrg: string;
-  currentBeltGrade: string;
-  tfiIdNo: string;
-  danCertificateNo: string;
+  district: string;
+  dateOfBirth: string;
+  age: number;
+  weight: number;
+  parentGuardianName?: string;
   mobileNo: string;
+  currentBeltGrade?: string;
+  tfiIdNo?: string;
+  danCertificateNo?: string;
+  academicQualification?: string;
+  nameOfCollege?: string;
+  nameOfBoardUniversity?: string;
   formFileName?: string;
   createdAt: string;
 }
@@ -25,9 +33,12 @@ const PoomsaeApplications: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDivision, setFilterDivision] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [filterState, setFilterState] = useState('all');
+  const [filterDistrict, setFilterDistrict] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedPoomsae, setSelectedPoomsae] = useState<Poomsae | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     fetchPoomsae();
@@ -36,12 +47,22 @@ const PoomsaeApplications: React.FC = () => {
   const fetchPoomsae = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Fetching poomsae data...');
       const response = await poomsaeAPI.getAll(currentPage, 20);
+      console.log('✅ Poomsae API response:', response);
+      
       if (response.success) {
+        console.log('📊 Setting poomsae data:', response.data);
         setPoomsae(response.data);
         setTotalPages(response.totalPages || 1);
+        setToast({ type: 'success', message: 'Poomsae applications loaded' });
+      } else {
+        console.error('❌ API returned success=false:', response);
+        setError(response.message || 'Failed to fetch poomsae applications');
+        setToast({ type: 'error', message: response.message || 'Failed to fetch poomsae applications' });
       }
     } catch (err: any) {
+      console.error('❌ Error fetching poomsae:', err);
       setError(err.message || 'Failed to fetch poomsae applications');
     } finally {
       setLoading(false);
@@ -52,27 +73,31 @@ const PoomsaeApplications: React.FC = () => {
     if (!confirm('Are you sure you want to delete this entry?')) return;
 
     try {
-      const response = await poomsaeAPI.delete(entryId);
+      const response = await poomsaeAPI.remove(entryId);
       if (response.success) {
         setPoomsae(poomsae.filter(p => p.entryId !== entryId));
-        alert('Entry deleted successfully');
+        setToast({ type: 'success', message: 'Entry deleted successfully' });
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to delete entry');
+      setToast({ type: 'error', message: err.message || 'Failed to delete entry' });
     }
   };
 
   const filteredPoomsae = poomsae.filter((entry) => {
     const matchesSearch = entry.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          entry.entryId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.tfiIdNo.toLowerCase().includes(searchTerm.toLowerCase());
+                         (entry.tfiIdNo && entry.tfiIdNo.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesDivision = filterDivision === 'all' || entry.division === filterDivision;
     const matchesCategory = filterCategory === 'all' || entry.category === filterCategory;
-    return matchesSearch && matchesDivision && matchesCategory;
+    const matchesState = filterState === 'all' || entry.stateOrg === filterState;
+    const matchesDistrict = filterDistrict === 'all' || entry.district === filterDistrict;
+    return matchesSearch && matchesDivision && matchesCategory && matchesState && matchesDistrict;
   });
 
   const divisions = ['Under 30', 'Under 40', 'Under 50', 'Under 60', 'Under 65', 'Over 65', 'Over 30'];
   const categories = ['Individual', 'Pair', 'Group'];
+  const uniqueStates = Array.from(new Set(poomsae.map(p => p.stateOrg))).sort();
+  const uniqueDistricts = Array.from(new Set(poomsae.map(p => p.district))).sort();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -143,7 +168,7 @@ const PoomsaeApplications: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
             <input
@@ -180,6 +205,32 @@ const PoomsaeApplications: React.FC = () => {
               ))}
             </select>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
+            <select
+              value={filterState}
+              onChange={(e) => setFilterState(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+              <option value="all">All States</option>
+              {uniqueStates.map(state => (
+                <option key={state} value={state}>{state}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
+            <select
+              value={filterDistrict}
+              onChange={(e) => setFilterDistrict(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+              <option value="all">All Districts</option>
+              {uniqueDistricts.map(district => (
+                <option key={district} value={district}>{district}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -194,6 +245,7 @@ const PoomsaeApplications: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Division</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">State</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">District</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Belt/Dan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -223,6 +275,7 @@ const PoomsaeApplications: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">{entry.stateOrg}</td>
+                    <td className="px-6 py-4 text-sm">{entry.district}</td>
                     <td className="px-6 py-4 text-sm">{entry.currentBeltGrade}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{formatDate(entry.createdAt)}</td>
                     <td className="px-6 py-4">
@@ -239,7 +292,7 @@ const PoomsaeApplications: React.FC = () => {
                         </button>
                         {entry.formFileName && (
                           <a
-                            href={`http://localhost:5000/forms/${entry.formFileName}`}
+                            href={`${BACKEND_URL}/forms/${entry.formFileName}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-green-600 hover:text-green-800"
@@ -265,7 +318,7 @@ const PoomsaeApplications: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                     No poomsae applications found
                   </td>
                 </tr>
@@ -367,7 +420,7 @@ const PoomsaeApplications: React.FC = () => {
 
               {selectedPoomsae.formFileName && (
                 <a
-                  href={`http://localhost:5000/forms/${selectedPoomsae.formFileName}`}
+                  href={`${BACKEND_URL}/forms/${selectedPoomsae.formFileName}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full bg-purple-600 text-white text-center px-4 py-3 rounded-lg hover:bg-purple-700 transition"
@@ -378,6 +431,14 @@ const PoomsaeApplications: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={4000}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

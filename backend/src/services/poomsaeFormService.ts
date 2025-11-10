@@ -12,14 +12,15 @@ interface PoomsaeFormData {
   dateOfBirth: string;
   age: string;
   weight: string;
-  parentGuardianName: string;
+  parentGuardianName?: string;
   mobileNo: string;
-  currentBeltGrade: string;
-  tfiIdNo: string;
-  danCertificateNo: string;
-  academicQualification: string;
-  nameOfCollege: string;
-  nameOfBoardUniversity: string;
+  currentBeltGrade?: string;
+  tfiIdNo?: string;
+  danCertificateNo?: string;
+  academicQualification?: string;
+  nameOfCollege?: string;
+  nameOfBoardUniversity?: string;
+  district: string;
 }
 
 export class PoomsaeFormGenerator {
@@ -120,6 +121,7 @@ export class PoomsaeFormGenerator {
       console.log(`✅ Poomsae form generated: ${fileName}`);
 
       return {
+        success: true,
         filePath: `/forms/${fileName}`,
         fileName,
         entryId: data.entryId

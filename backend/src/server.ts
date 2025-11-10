@@ -2,20 +2,18 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { errorHandler } from './middleware/errorMiddleware';
 import certificateRoutes from './routes/certificateRoutes';
-
-// Import routes
-import cadetRoutes from './routes/cadetRoutes'; // Import cadet routes
-import poomsaeRoutes from './routes/poomsaeRoutes'; // Import poomsae routes
+import cadetRoutes from './routes/cadetRoutes';
+import poomsaeRoutes from './routes/poomsaeRoutes';
 import authRoutes from './routes/authRoutes';
-
 import dashboardRoutes from './routes/dashboardRoutes';
 import connectDB from './config/database';
 
-
 // Load environment variables
 dotenv.config();
-
 
 const app: Application = express();
 const PORT: number = parseInt(process.env.PORT || '5000', 10);
@@ -23,13 +21,44 @@ const PORT: number = parseInt(process.env.PORT || '5000', 10);
 // Connect to MongoDB
 connectDB();
 
-// CORS with detailed logging [middleware]
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true,
+// Security middleware (allow cross-origin resource loads for images/files)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
-console.log('✅ CORS enabled for http://localhost:5173');
+// Rate limiting for all routes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+
+// CORS configuration
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow localhost origins for development
+    if (origin.match(/^https?:\/\/localhost(:\d+)?$/)) {
+      return callback(null, true);
+    }
+
+    // Allow 127.0.0.1 origins for development
+    if (origin.match(/^https?:\/\/127\.0\.0\.1(:\d+)?$/)) {
+      return callback(null, true);
+    }
+
+    // In production, you might want to restrict this
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+}));
+
+console.log('✅ CORS enabled for development URLs');
 
 // Body parsers
 app.use(express.json());
@@ -53,9 +82,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Static files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use('/forms', express.static(path.join(__dirname, '../uploads/forms'))); // Add this
+// Static files with relaxed CORP for cross-origin embedding (frontend on different port)
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, '../uploads')));
+
+app.use('/forms', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, '../uploads/forms'))); // Add this
 
 
 // Routes
@@ -88,16 +124,11 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-// Error handler
-app.use((err: Error, req: Request, res: Response, next: any) => {
-  console.error('❌ Server Error:', err.message);
-  console.error('Stack:', err.stack);
-  res.status(500).json({ 
-    success: false, 
-    message: 'Internal server error',
-    error: err.message
-  });
-});
+// Global error handler
+app.use(errorHandler);
+
+// Import and initialize file integrity monitor
+import './utils/fileIntegrityMonitor';
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
@@ -107,6 +138,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📍 Frontend: http://localhost:5173`);
   console.log(`📊 Health:   http://localhost:${PORT}/health`);
   console.log(`📡 API:      http://localhost:${PORT}/api/certificates`);
+  console.log('🛡️  Security monitoring active');
   console.log('==================================\n');
   console.log('Waiting for requests...\n');
 }).on('error', (err: any) => {

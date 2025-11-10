@@ -2,27 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { cadetsAPI } from '../../services/api';
 
 interface Cadet {
-  _id: string;
+  id: string;
   entryId: string;
   name: string;
-  gender: string;
+  gender: 'male' | 'female' | 'other';
+  dateOfBirth: string;
   age: number;
-  weight: number;
+  weight?: number;
+  weightCategory?: string;
+  parentGuardianName?: string;
   state: string;
+  district: string;
   presentBeltGrade: string;
-  tfiIdCardNo: string;
-  schoolName: string;
+  tfiIdCardNo?: string;
+  academicQualification?: string;
+  schoolName?: string;
+  applicationStatus?: 'pending' | 'approved' | 'rejected';
   formFileName?: string;
   createdAt: string;
 }
 
-const CadetApplications: React.FC = () => {
+const CadetApplicationsComponent: React.FC = () => {
   const [cadets, setCadets] = useState<Cadet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGender, setFilterGender] = useState('all');
   const [filterState, setFilterState] = useState('all');
+  const [filterDistrict, setFilterDistrict] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedCadet, setSelectedCadet] = useState<Cadet | null>(null);
@@ -34,10 +41,14 @@ const CadetApplications: React.FC = () => {
   const fetchCadets = async () => {
     try {
       setLoading(true);
-      const response = await cadetsAPI.getAll(currentPage, 20);
+      setError('');
+      const response = await cadetsAPI.getAll(currentPage, 20) as any;
+      
       if (response.success) {
-        setCadets(response.data);
-        setTotalPages(response.totalPages || 1);
+        setCadets(response.data.items || []);
+        setTotalPages(response.data.totalPages || 1);
+      } else {
+        setError(response.message || 'Failed to fetch cadet applications');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch cadet applications');
@@ -50,7 +61,7 @@ const CadetApplications: React.FC = () => {
     if (!confirm('Are you sure you want to delete this entry?')) return;
 
     try {
-      const response = await cadetsAPI.delete(entryId);
+      const response = await cadetsAPI.remove(entryId);
       if (response.success) {
         setCadets(cadets.filter(c => c.entryId !== entryId));
         alert('Entry deleted successfully');
@@ -61,22 +72,35 @@ const CadetApplications: React.FC = () => {
   };
 
   const filteredCadets = cadets.filter((cadet) => {
-    const matchesSearch = cadet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         cadet.entryId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         cadet.tfiIdCardNo.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGender = filterGender === 'all' || cadet.gender === filterGender;
-    const matchesState = filterState === 'all' || cadet.state === filterState;
-    return matchesSearch && matchesGender && matchesState;
-  });
+  const matchesSearch = cadet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        cadet.entryId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        cadet.tfiIdCardNo.toLowerCase().includes(searchTerm.toLowerCase());
+  const matchesGender = filterGender === 'all' || cadet.gender === filterGender;
+  const matchesDistrict = filterDistrict === 'all' || cadet.district === filterDistrict;
+  return matchesSearch && matchesGender && matchesDistrict;
+});
 
+  const uniqueDistricts = Array.from(new Set(cadets.map(c => c.district))).sort();
   const uniqueStates = Array.from(new Set(cadets.map(c => c.state))).sort();
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const calculateAge = (dateOfBirth: string) => {
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
   };
 
   if (loading) {
@@ -121,18 +145,22 @@ const CadetApplications: React.FC = () => {
         <div className="bg-white p-4 rounded-lg shadow">
           <p className="text-gray-600 text-sm">Boys</p>
           <p className="text-2xl font-bold text-green-600">
-            {cadets.filter(c => c.gender === 'Boy').length}
+            {cadets.filter(c => c.gender === 'male').length}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <p className="text-gray-600 text-sm">Girls</p>
           <p className="text-2xl font-bold text-pink-600">
-            {cadets.filter(c => c.gender === 'Girl').length}
+            {cadets.filter(c => c.gender === 'female').length}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <p className="text-gray-600 text-sm">States</p>
           <p className="text-2xl font-bold text-purple-600">{uniqueStates.length}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <p className="text-gray-600 text-sm">Districts</p>
+          <p className="text-2xl font-bold text-indigo-600">{uniqueDistricts.length}</p>
         </div>
       </div>
 
@@ -174,6 +202,21 @@ const CadetApplications: React.FC = () => {
               ))}
             </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
+            <select
+              value={filterDistrict}
+              onChange={(e) => setFilterDistrict(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+              <option value="all">All Districts</option>
+              {uniqueDistricts.map(district => (
+                <option key={district} value={district}>{district}</option>
+              ))}
+            </select>
+          </div>
+
         </div>
       </div>
 
@@ -196,7 +239,7 @@ const CadetApplications: React.FC = () => {
             <tbody className="divide-y divide-gray-200">
               {filteredCadets.length > 0 ? (
                 filteredCadets.map((cadet) => (
-                  <tr key={cadet._id} className="hover:bg-gray-50">
+                  <tr key={cadet.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-mono text-blue-600">{cadet.entryId}</td>
                     <td className="px-6 py-4">
                       <p className="font-semibold text-gray-800">{cadet.name}</p>
@@ -204,13 +247,16 @@ const CadetApplications: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        cadet.gender === 'Boy' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'
+                        cadet.gender === 'male' ? 'bg-blue-100 text-blue-700' :
+                        cadet.gender === 'female' ? 'bg-pink-100 text-pink-700' :
+                        'bg-gray-100 text-gray-700'
                       }`}>
-                        {cadet.gender}
+                        {cadet.gender === 'male' ? 'Boy' : cadet.gender === 'female' ? 'Girl' : 'Other'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm">{cadet.age} yrs</td>
+                    <td className="px-6 py-4 text-sm">{calculateAge(cadet.dateOfBirth)} yrs</td>
                     <td className="px-6 py-4 text-sm">{cadet.state}</td>
+                    <td className="px-6 py-4 text-sm">{cadet.district}</td>
                     <td className="px-6 py-4 text-sm">{cadet.presentBeltGrade}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{formatDate(cadet.createdAt)}</td>
                     <td className="px-6 py-4">
@@ -363,4 +409,5 @@ const CadetApplications: React.FC = () => {
   );
 };
 
+export const CadetApplications = CadetApplicationsComponent;
 export default CadetApplications;

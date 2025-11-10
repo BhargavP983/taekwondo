@@ -1,4 +1,16 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
+import { 
+  UserData, 
+  LoginRequest, 
+  LoginResponse, 
+  ApiResponse, 
+  CadetFormData, 
+  PoomsaeFormData,
+  FilterParams,
+  PaginatedResponse,
+  Cadet,
+  Poomsae
+} from '../src/types/api';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 const BACKEND_URL = 'http://localhost:5000';
@@ -7,15 +19,17 @@ console.log('🔧 Frontend API Configuration:');
 console.log('   API Base URL:', API_BASE_URL);
 console.log('   Backend URL:', BACKEND_URL);
 
-const api = axios.create({
+const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased from 10000 to 30000ms
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 });
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
   return {
     'Content-Type': 'application/json',
@@ -50,7 +64,7 @@ api.interceptors.response.use(
     console.error('\n❌ Response Error:');
     console.error('   Message:', error.message);
     console.error('   Code:', error.code);
-    
+
     if (error.response) {
       console.error('   Status:', error.response.status);
       console.error('   Data:', error.response.data);
@@ -64,7 +78,7 @@ api.interceptors.response.use(
     } else {
       console.error('   Request setup error:', error.message);
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -77,11 +91,16 @@ export interface CertificateRequest {
 
 export interface CertificateResponse {
   success: boolean;
-  message: string;
+  message?: string;
   data: {
-    serialNumber: string;
-    downloadUrl: string;
-    fileName: string;
+    _id?: string;
+    serial: string;
+    name: string;
+    date: string;
+    grade: string;
+    generatedBy?: string;
+    filePath: string; // relative path like /uploads/certificate/...
+    previewUrl?: string; // absolute URL added by controller for convenience
   };
 }
 
@@ -98,7 +117,7 @@ export const certificateApi = {
       console.error('❌ Backend health check failed');
       console.error('   URL:', `${BACKEND_URL}/health`);
       console.error('   Error:', error.message);
-      
+
       if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
         throw new Error('Cannot connect to backend. Make sure it is running on http://localhost:5000');
       }
@@ -109,17 +128,19 @@ export const certificateApi = {
   generate: async (data: CertificateRequest): Promise<CertificateResponse> => {
     try {
       console.log('📝 Generating certificate...');
-      const response = await api.post('/certificates', data);
+      const response = await api.post('/certificates/generate', data, {
+        headers: getAuthHeaders()
+      });
       return response.data;
     } catch (error: any) {
       if (error.code === 'ERR_NETWORK') {
         throw new Error('Cannot connect to server. Is the backend running on http://localhost:5000?');
       }
-      
+
       if (error.response) {
         throw new Error(error.response.data.message || 'Failed to generate certificate');
       }
-      
+
       throw new Error(error.message || 'Unknown error occurred');
     }
   },
@@ -133,163 +154,405 @@ export const certificateApi = {
     const response = await api.delete(`/certificates/${fileName}`);
     return response.data;
   },
+
+  getAll: async () => {
+    try {
+      const response = await fetch('/api/certificates');
+      const data = await response.json();
+      return data; // { success: boolean, data: Certificate[] }
+    } catch (err) {
+      return { success: false, data: [], message: 'Could not fetch certificates' };
+    }
+  }
 };
 
 export { API_BASE_URL, BACKEND_URL };
 
+export const authAPI = {
+  login: async (email: string, password: string): Promise<ApiResponse<{ token: string; user: UserData }>> => {
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      return response.data;
+    } catch (error: any) {
+      console.error('Login API error:', error);
+      throw new Error(error.response?.data?.message || 'Login failed');
+    }
+  },
+
+  getProfile: async (): Promise<ApiResponse<UserData>> => {
+    try {
+      const response = await api.get('/auth/profile', {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Profile API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch profile');
+    }
+  },
+
+  getUsers: async (): Promise<ApiResponse<UserData[]>> => {
+    try {
+      const response = await api.get('/auth/users', {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Get users API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch users');
+    }
+  },
+
+  createUser: async (userData: Partial<UserData>): Promise<ApiResponse<UserData>> => {
+    try {
+      const response = await api.post('/auth/users', userData, {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Create user API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to create user');
+    }
+  },
+
+  updateUser: async (userId: string, userData: Partial<UserData>): Promise<ApiResponse<UserData>> => {
+    try {
+      const response = await api.put(`/auth/users/${userId}`, userData, {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Update user API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to update user');
+    }
+  },
+
+  deleteUser: async (userId: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.delete(`/auth/users/${userId}`, {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Delete user API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to delete user');
+    }
+  },
+
+  toggleUserStatus: async (userId: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.patch(`/auth/users/${userId}/toggle-status`, {}, {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Toggle user status API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to toggle user status');
+    }
+  }
+};
+
 export const dashboardAPI = {
   getStats: async () => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/stats`, {
-      headers: getAuthHeaders()
-    });
-    return response.json();
+    try {
+      const response = await api.get('/dashboard/stats', {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Dashboard stats API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch dashboard stats');
+    }
   },
 
   getActivities: async (limit = 10) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/activities?limit=${limit}`, {
-      headers: getAuthHeaders()
-    });
-    return response.json();
+    try {
+      const response = await api.get('/dashboard/activities', {
+        params: { limit },
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Dashboard activities API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch dashboard activities');
+    }
   }
 };
 
 export const usersAPI = {
-  getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/auth/users`, {
-      headers: getAuthHeaders()
-    });
-    return response.json();
+  getAll: async (): Promise<ApiResponse<UserData[]>> => {
+    try {
+      const response = await api.get('/auth/users', { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error: any) {
+      console.error('Get users API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch users');
+    }
   },
 
-  create: async (userData: any) => {
-    const response = await fetch(`${API_BASE_URL}/auth/users`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(userData)
-    });
-    return response.json();
+  create: async (userData: Omit<UserData, 'id'>): Promise<ApiResponse<UserData>> => {
+    try {
+      const response = await api.post('/auth/users', userData, { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error: any) {
+      console.error('Create user API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to create user');
+    }
   },
 
-  update: async (userId: string, userData: any) => {
-    const response = await fetch(`${API_BASE_URL}/auth/users/${userId}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(userData)
-    });
-    return response.json();
+  update: async (userId: string, userData: Partial<UserData>): Promise<ApiResponse<UserData>> => {
+    try {
+      const response = await api.put(`/auth/users/${userId}`, userData, { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error: any) {
+      console.error('Update user API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to update user');
+    }
   },
 
   delete: async (userId: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/users/${userId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
-    });
-    return response.json();
+    try {
+      const response = await api.delete(`/auth/users/${userId}`, { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error: any) {
+      console.error('Delete user API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to delete user');
+    }
   },
 
   toggleStatus: async (userId: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/users/${userId}/toggle-status`, {
-      method: 'PATCH',
-      headers: getAuthHeaders()
-    });
-    return response.json();
+    try {
+      const response = await api.patch(`/auth/users/${userId}/toggle-status`, {}, { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error: any) {
+      console.error('Toggle user status API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to toggle user status');
+    }
+  }
+};
+
+
+
+export const cadetsAPI = {
+  create: async (data: CadetFormData): Promise<ApiResponse<Cadet>> => {
+    try {
+      const response = await api.post('/cadets', data, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) return error.response.data;
+      return { success: false, status: 500, message: error.message || 'Failed to create cadet' };
+    }
+  },
+  getAll: async (page = 1, limit = 10): Promise<ApiResponse<PaginatedResponse<Cadet>>> => {
+    try {
+      const response = await api.get('/cadets', {
+        params: { page, limit },
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching cadets:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch cadets');
+    }
+  },
+
+  getStats: async (): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.get('/cadets/stats', {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching cadet stats:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch cadet statistics');
+    }
+  },
+
+  remove: async (entryId: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.delete(`/cadets/${entryId}`, {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error deleting cadet:', error);
+      throw new Error(error.response?.data?.message || 'Failed to delete cadet');
+    }
   }
 };
 
 export const poomsaeAPI = {
-  getAll: async (page = 1, limit = 10) => {
-    const response = await fetch(`${API_BASE_URL}/poomsae?page=${page}&limit=${limit}`, {
-      headers: getAuthHeaders()
-    });
-    return response.json();
+  create: async (data: PoomsaeFormData): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.post('/poomsae', data, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) return error.response.data;
+      return { success: false, status: 500, message: error.message || 'Failed to create poomsae entry' } as ApiResponse;
+    }
+  },
+  getAll: async (page = 1, limit = 10): Promise<ApiResponse<Poomsae[]>> => {
+    try {
+      const response = await api.get('/poomsae', {
+        params: { page, limit },
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching poomsae:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch poomsae');
+    }
   },
 
-  getStats: async () => {
-    const response = await fetch(`${API_BASE_URL}/poomsae/stats`, {
-      headers: getAuthHeaders()
-    });
-    return response.json();
+  getStats: async (): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.get('/poomsae/stats', {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching poomsae stats:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch poomsae statistics');
+    }
   },
 
-  delete: async (entryId: string) => {
-    const response = await fetch(`${API_BASE_URL}/poomsae/${entryId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
-    });
-    return response.json();
+  remove: async (entryId: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.delete(`/poomsae/${entryId}`, {
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error deleting poomsae:', error);
+      throw new Error(error.response?.data?.message || 'Failed to delete poomsae');
+    }
   }
 };
 
-
-export const cadetsAPI = {
-  getAll: async (page = 1, limit = 10) => {
-    const response = await fetch(`${API_BASE_URL}/cadets?page=${page}&limit=${limit}`, {
-      headers: getAuthHeaders()
-    });
-    return response.json();
-  },
-
-  getStats: async () => {
-    const response = await fetch(`${API_BASE_URL}/cadets/stats`, {
-      headers: getAuthHeaders()
-    });
-    return response.json();
-  },
-
-  delete: async (entryId: string) => {
-    const response = await fetch(`${API_BASE_URL}/cadets/${entryId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
-    });
-    return response.json();
-  }
-};
-
-// State Admin APIs
 export const stateAdminAPI = {
   getStats: async () => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/state/stats`, {
-      headers: getAuthHeaders()
-    });
-    return response.json();
+    try {
+      const response = await api.get('/dashboard/state/stats', { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error: any) {
+      console.error('State Admin stats API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch state stats');
+    }
   },
 
-  getActivities: async (limit = 10) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/state/activities?limit=${limit}`, {
+getActivities: async (limit = 10) => {
+  try {
+    const response = await api.get('/dashboard/state/activities', {
+      params: { limit },
       headers: getAuthHeaders()
     });
-    return response.json();
-  },
+    return response.data;
+  } catch (error: any) {
+    console.error('State Admin activities API error:', error);
+    throw new Error(error.response?.data?.message || 'Failed to fetch state activities');
+  }
+},
 
   getCadets: async (page = 1, limit = 10) => {
-    const response = await fetch(`${API_BASE_URL}/cadets/state?page=${page}&limit=${limit}`, {
-      headers: getAuthHeaders()
-    });
-    return response.json();
+    try {
+      const userState = localStorage.getItem('userState') || '';
+      const res = await api.get('/cadets', {
+        params: { page, limit, state: userState || undefined },
+        headers: getAuthHeaders()
+      });
+      const json = res.data;
+      // Normalize paginated shape to { success, data, totalPages }
+      if (json?.data?.items) {
+        return {
+          success: json.success,
+          data: json.data.items,
+          totalPages: json.data.totalPages || json.totalPages || 1
+        };
+      }
+      return json;
+    } catch (e) {
+      return { success: false, message: 'Failed to fetch state cadets' } as any;
+    }
   },
 
   getPoomsae: async (page = 1, limit = 10) => {
-    const userState = localStorage.getItem('userState'); // You'll need to store this on login
-    const response = await fetch(`${API_BASE_URL}/poomsae?page=${page}&limit=${limit}&state=${userState}`, {
-      headers: getAuthHeaders()
-    });
-    return response.json();
+    try {
+      const userState = localStorage.getItem('userState');
+      const response = await api.get('/poomsae', {
+        params: { page, limit, state: userState || undefined },
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('State Admin poomsae API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch state poomsae');
+    }
   }
 };
 
 // State Admin District APIs
 export const stateAdminDistrictAPI = {
   list: async () => {
-    const response = await fetch(`${API_BASE_URL}/auth/district-admins`, { headers: getAuthHeaders() });
-    return response.json();
+    try {
+      const response = await api.get('/auth/district-admins', { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error: any) {
+      console.error('List district admins API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch district admins');
+    }
   },
   create: async (data: any) => {
-    const response = await fetch(`${API_BASE_URL}/auth/district-admins`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data)
-    });
-    return response.json();
+    try {
+      const response = await api.post('/auth/district-admins', data, { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error: any) {
+      console.error('Create district admin API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to create district admin');
+    }
   },
   // Add update, delete as needed
+};
+
+
+// District Admin APIs
+export const districtAdminAPI = {
+  getCadets: async (page = 1, limit = 10) => {
+    try {
+      const userDistrict = localStorage.getItem('userDistrict');
+      const response = await api.get('/cadets/district', {
+        params: { page, limit, district: userDistrict || undefined },
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('District Admin getCadets API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch district cadets');
+    }
+  },
+  getStats: async () => {
+    try {
+      const response = await api.get('/cadets/district/stats', { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error: any) {
+      console.error('District Admin stats API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch district stats');
+    }
+  },
+  getAllByDistrict: async (district, page = 1, limit = 10) => {
+    try {
+      const response = await api.get('/cadets', {
+        params: { district, page, limit },
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('District Admin list by district API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch cadets by district');
+    }
+  },
+  // ...other district admin endpoints
 };

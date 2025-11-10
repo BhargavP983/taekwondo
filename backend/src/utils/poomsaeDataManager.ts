@@ -10,6 +10,7 @@ export interface PoomsaeEntry {
   gender: string;
   name: string;
   stateOrg: string;
+  district: string;
   dateOfBirth: string;
   age: string;
   weight: string;

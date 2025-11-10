@@ -15,6 +15,7 @@ interface Cadet {
   tfiIdCardNo: string;
   schoolName: string;
   formFileName?: string;
+  formDownloadUrl?: string;
   createdAt: string;
 }
 
@@ -25,6 +26,7 @@ const StateAdminCadetApplications: React.FC = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGender, setFilterGender] = useState('all');
+  const [filterDistrict, setFilterDistrict] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedCadet, setSelectedCadet] = useState<Cadet | null>(null);
@@ -38,8 +40,26 @@ const StateAdminCadetApplications: React.FC = () => {
       setLoading(true);
       const response = await stateAdminAPI.getCadets(currentPage, 20);
       if (response.success) {
-        setCadets(response.data);
+        const items = (response.data || []).map((c: any) => ({
+          _id: c._id || c.id || c.entryId || Math.random().toString(36).slice(2),
+          entryId: c.entryId,
+          name: c.name,
+          gender: c.gender === 'male' ? 'Boy' : c.gender === 'female' ? 'Girl' : c.gender,
+          age: c.age,
+          weight: c.weight,
+          state: c.state,
+          district: c.district,
+          presentBeltGrade: c.presentBeltGrade,
+          tfiIdCardNo: c.tfiIdCardNo,
+          schoolName: c.schoolName,
+          formFileName: c.formFileName,
+          formDownloadUrl: c.formDownloadUrl || c.downloadUrl,
+          createdAt: c.createdAt
+        }));
+        setCadets(items);
         setTotalPages(response.totalPages || 1);
+      } else if (response.message) {
+        setError(response.message);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch cadet applications');
@@ -51,10 +71,13 @@ const StateAdminCadetApplications: React.FC = () => {
   const filteredCadets = cadets.filter((cadet) => {
     const matchesSearch = cadet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          cadet.entryId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         cadet.tfiIdCardNo.toLowerCase().includes(searchTerm.toLowerCase());
+                         (cadet.tfiIdCardNo && cadet.tfiIdCardNo.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesGender = filterGender === 'all' || cadet.gender === filterGender;
-    return matchesSearch && matchesGender;
+    const matchesDistrict = filterDistrict === 'all' || cadet.district === filterDistrict;
+    return matchesSearch && matchesGender && matchesDistrict;
   });
+
+  const uniqueDistricts = Array.from(new Set(cadets.map(c => c.district).filter(Boolean))).sort();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -125,7 +148,7 @@ const StateAdminCadetApplications: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
             <input
@@ -146,6 +169,19 @@ const StateAdminCadetApplications: React.FC = () => {
               <option value="all">All Genders</option>
               <option value="Boy">Boy</option>
               <option value="Girl">Girl</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
+            <select
+              value={filterDistrict}
+              onChange={(e) => setFilterDistrict(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+              <option value="all">All Districts</option>
+              {uniqueDistricts.map(district => (
+                <option key={district} value={district}>{district}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -201,7 +237,7 @@ const StateAdminCadetApplications: React.FC = () => {
                         </button>
                         {cadet.formFileName && (
                           <a
-                            href={`http://localhost:5000/forms/${cadet.formFileName}`}
+                            href={cadet.formDownloadUrl || `http://localhost:5000/forms/${cadet.formFileName}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-green-600 hover:text-green-800"
@@ -316,7 +352,7 @@ const StateAdminCadetApplications: React.FC = () => {
 
               {selectedCadet.formFileName && (
                 <a
-                  href={`http://localhost:5000/forms/${selectedCadet.formFileName}`}
+                  href={selectedCadet.formDownloadUrl || `http://localhost:5000/forms/${selectedCadet.formFileName}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full bg-blue-600 text-white text-center px-4 py-3 rounded-lg hover:bg-blue-700 transition"

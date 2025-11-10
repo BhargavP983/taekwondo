@@ -22,7 +22,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'district_admin',
+    role: 'districtAdmin',
     state: '',
     district: '',
     isActive: true
@@ -62,7 +62,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
     setLoading(true);
 
     try {
-      const response = await usersAPI.update(user._id, formData);
+      const response = await usersAPI.update(user._id, formData as any);
       
       if (response.success) {
         alert('User updated successfully!');
@@ -145,9 +145,9 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
               >
-                <option value="district_admin">District Admin</option>
-                <option value="state_admin">State Admin</option>
-                <option value="super_admin">Super Admin</option>
+                <option value="districtAdmin">District Admin</option>
+                <option value="stateAdmin">State Admin</option>
+                <option value="superAdmin">Super Admin</option>
               </select>
             </div>
 
@@ -166,7 +166,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
             </div>
 
             {/* State */}
-            {(formData.role === 'state_admin' || formData.role === 'district_admin') && (
+            {(formData.role === 'stateAdmin' || formData.role === 'districtAdmin') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   State
@@ -189,7 +189,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
             )}
 
             {/* District */}
-            {formData.role === 'district_admin' && (
+            {formData.role === 'districtAdmin' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   District

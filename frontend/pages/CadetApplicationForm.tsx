@@ -1,4 +1,6 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
+import { API_BASE_URL, cadetsAPI } from '../services/api';
+import Toast from '../src/components/Toast';
 
 interface CadetFormData {
   gender: 'Boy' | 'Girl' | '';
@@ -13,6 +15,7 @@ interface CadetFormData {
   tfiIdCardNo: string;
   academicQualification: string;
   schoolName: string;
+  district: string;
 }
 
 function CadetEntryForm() {
@@ -28,11 +31,14 @@ function CadetEntryForm() {
     presentBeltGrade: '',
     tfiIdCardNo: '',
     academicQualification: '',
-    schoolName: ''
+    schoolName: '',
+    district: '',
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [tfiIdError, setTfiIdError] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [applicationNumber, setApplicationNumber] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
@@ -60,6 +66,10 @@ function CadetEntryForm() {
       }
       return updated;
     });
+
+    if (name === 'tfiIdCardNo' && tfiIdError) {
+      setTfiIdError('');
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -69,25 +79,51 @@ function CadetEntryForm() {
     setShowSuccess(false);
 
     try {
-      const response = await fetch('http://localhost:5000/api/cadets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      // Use centralized cadetsAPI.create (Axios) for unified error handling
+      const result = await cadetsAPI.create({
+        gender: formData.gender === 'Boy' || formData.gender === 'Girl' ? (formData.gender as any) : 'Boy', // backend normalizes
+        weightCategory: formData.weightCategory,
+        name: formData.name,
+        dateOfBirth: formData.dateOfBirth,
+        age: formData.age,
+        weight: formData.weight,
+        parentGuardianName: formData.parentGuardianName,
+        state: formData.state,
+        district: formData.district,
+        presentBeltGrade: formData.presentBeltGrade,
+        tfiIdCardNo: formData.tfiIdCardNo,
+        academicQualification: formData.academicQualification,
+        schoolName: formData.schoolName
+      } as any); // cast to any to allow string age/weight formatting expected by backend
 
-      const result = await response.json();
- 
       if (result.success) {
-        setApplicationNumber(result.data.applicationNumber);
-        setDownloadUrl(result.data.downloadUrl);
+        setApplicationNumber(result.data.applicationNumber || result.data.entryId);
+        setDownloadUrl(
+          result.data.formDownloadUrl ||
+          result.data.downloadUrl ||
+          result.data.formPath || ''
+        );
         setShowSuccess(true);
       } else {
-        setError(result.message || 'Registration failed');
+        const msg = result.message || `Registration failed${result.status ? ` (status ${result.status})` : ''}`;
+        setError(msg);
+        if (/TFI ID Card number already exists/i.test(msg)) {
+          setTfiIdError('This TFI ID is already registered. Leave it blank if you don\'t have one or enter a different ID.');
+          setToast({
+            type: 'error',
+            message: 'Duplicate TFI ID. Please leave it blank or use a different ID.'
+          });
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Failed to submit form');
+      if (/TFI ID Card number already exists/i.test(err.message || '')) {
+        setTfiIdError('This TFI ID is already registered. Leave it blank if you don\'t have one or enter a different ID.');
+        setToast({
+          type: 'error',
+          message: 'Duplicate TFI ID. Please leave it blank or use a different ID.'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -115,7 +151,8 @@ function CadetEntryForm() {
       presentBeltGrade: '',
       tfiIdCardNo: '',
       academicQualification: '',
-      schoolName: ''
+      schoolName: '',
+      district: '',
     });
     setShowSuccess(false);
     setError('');
@@ -331,9 +368,58 @@ function CadetEntryForm() {
                 <option value="Telangana">Telangana</option>
                 <option value="Maharashtra">Maharashtra</option>
                 <option value="Andhra Pradesh">Andhra Pradesh</option>
+                <option value="Telangana">Telangana</option>
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                <option value="West Bengal">West Bengal</option>
+                <option value="Odisha">Odisha</option>
+                <option value="Bihar">Bihar</option>
+                <option value="Gujarat">Gujarat</option>
+                <option value="Rajasthan">Rajasthan</option>
+                <option value="Punjab">Punjab</option>
+                <option value="Haryana">Haryana</option>
+                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                <option value="Chhattisgarh">Chhattisgarh</option>
+                <option value="Jharkhand">Jharkhand</option>
+                <option value="Assam">Assam</option>
+                <option value="North East">North East</option>
+                <option value="Sikkim">Sikkim</option>
+                <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
+                <option value="Lakshadweep">Lakshadweep</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Chandigarh">Chandigarh</option>
+                <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+                <option value="Uttarakhand">Uttarakhand</option>
+                <option value="Ladakh">Ladakh</option>
                 {/* Add more states */}
               </select>
             </div>
+          </div>
+
+          <div>
+              <label className="block text-sm font-medium mb-2">District *</label>
+              <select
+                name="district"
+                value={formData.district}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                required
+              >
+                <option value="">Select District</option>
+                <option value="Anantapur">Anantapur</option>
+                <option value="Chittoor">Chittoor</option>
+                <option value="East Godavari">East Godavari</option>
+                <option value="Guntur">Guntur</option>
+                <option value="Krishna">Krishna</option>
+                <option value="Kurnool">Kurnool</option>
+                <option value="Nellore">Nellore</option>
+                <option value="Prakasam">Prakasam</option>
+                <option value="Srikakulam">Srikakulam</option>
+                <option value="Visakhapatnam">Visakhapatnam</option>
+                <option value="Vizianagaram">Vizianagaram</option>
+                <option value="West Godavari">West Godavari</option>
+                <option value="YSR Kadapa">YSR Kadapa</option>
+                {/* Add more states */}
+              </select>
           </div>
 
           {/* Belt Grade and TFI ID */}
@@ -358,7 +444,7 @@ function CadetEntryForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">TFI Id Card No. </label>
+              <label className="block text-sm font-medium mb-2">TFI Id Card No. (Optional)</label>
               <input
                 type="text"
                 name="tfiIdCardNo"
@@ -366,8 +452,12 @@ function CadetEntryForm() {
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 placeholder="Enter TFI ID"
-                
+                // Not required; uniqueness enforced only if non-empty on backend
               />
+              <p className="mt-1 text-xs text-gray-500">Optional. If provided, it must be unique. Leave blank if you don&apos;t have one.</p>
+              {tfiIdError && (
+                <p className="mt-1 text-sm text-red-600">{tfiIdError}</p>
+              )}
             </div>
           </div>
 
@@ -438,6 +528,14 @@ function CadetEntryForm() {
           </button>
         </form>
       </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={5000}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

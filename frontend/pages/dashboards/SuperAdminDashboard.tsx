@@ -4,24 +4,31 @@ import { Link } from 'react-router-dom';
 import { dashboardAPI } from '../../services/api';
 
 interface DashboardStats {
+  totalUsers: number;
+  totalCadets: number;
+  totalPoomsae: number;
+  activeUsers: number;
+  recentCadets: number;
+  recentPoomsae: number;
+  usersByRole: {
+    role: string;
+    count: number;
+  }[];
   overview: {
     totalUsers: number;
-    activeUsers: number;
     totalCadets: number;
     totalPoomsae: number;
-    totalApplications: number;
-    recentCadets: number;
-    recentPoomsae: number;
   };
-  cadetsByState: Array<{ _id: string; count: number }>;
-  cadetsByGender: Array<{ _id: string; count: number }>;
-  poomsaeByDivision: Array<{ _id: string; count: number }>;
-  recentRegistrations: Array<{
+  recentRegistrations?: {
     entryId: string;
     name: string;
     state: string;
     createdAt: string;
-  }>;
+  }[];
+  cadetsByState: {
+    _id: string;
+    count: number;
+  }[];
 }
 
 interface Activity {
@@ -91,10 +98,43 @@ const SuperAdminDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <p className="mt-4 text-gray-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center bg-white p-8 rounded-lg shadow-lg">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={fetchDashboardData}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">No dashboard data available</p>
+          <button 
+            onClick={fetchDashboardData} 
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Refresh
+          </button>
         </div>
       </div>
     );
@@ -123,12 +163,6 @@ const SuperAdminDashboard: React.FC = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-            {error}
-          </div>
-        )}
-
         {/* Stats Overview */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total Users */}
@@ -137,10 +171,10 @@ const SuperAdminDashboard: React.FC = () => {
               <div>
                 <p className="text-gray-600 text-sm font-medium">Total Users</p>
                 <p className="text-3xl font-bold text-blue-600 mt-2">
-                  {stats?.overview.totalUsers || 0}
+                  {stats?.totalUsers || 0}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {stats?.overview.activeUsers || 0} active
+                  {stats?.activeUsers || 0} active
                 </p>
               </div>
               <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
@@ -157,10 +191,10 @@ const SuperAdminDashboard: React.FC = () => {
               <div>
                 <p className="text-gray-600 text-sm font-medium">Total Applications</p>
                 <p className="text-3xl font-bold text-purple-600 mt-2">
-                  {stats?.overview.totalApplications || 0}
+                  {(stats?.totalCadets || 0) + (stats?.totalPoomsae || 0)}
                 </p>
-                <p className="text-xs text-green-600 mt-1">
-                  +{(stats?.overview.recentCadets || 0) + (stats?.overview.recentPoomsae || 0)} this week
+                <p className="text-xs text-gray-500 mt-1">
+                  +{(stats?.recentCadets || 0) + (stats?.recentPoomsae || 0)} this week
                 </p>
               </div>
               <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center">
@@ -177,10 +211,10 @@ const SuperAdminDashboard: React.FC = () => {
               <div>
                 <p className="text-gray-600 text-sm font-medium">Cadet Applications</p>
                 <p className="text-3xl font-bold text-green-600 mt-2">
-                  {stats?.overview.totalCadets || 0}
+                  {stats?.totalCadets || 0}
                 </p>
-                <p className="text-xs text-green-600 mt-1">
-                  +{stats?.overview.recentCadets || 0} this week
+                <p className="text-xs text-gray-500 mt-1">
+                  +{stats?.recentCadets || 0} this week
                 </p>
               </div>
               <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center text-2xl">
@@ -195,10 +229,10 @@ const SuperAdminDashboard: React.FC = () => {
               <div>
                 <p className="text-gray-600 text-sm font-medium">Poomsae Applications</p>
                 <p className="text-3xl font-bold text-orange-600 mt-2">
-                  {stats?.overview.totalPoomsae || 0}
+                  {stats?.totalPoomsae || 0}
                 </p>
-                <p className="text-xs text-orange-600 mt-1">
-                  +{stats?.overview.recentPoomsae || 0} this week
+                <p className="text-xs text-gray-500 mt-1">
+                  +{stats?.recentPoomsae || 0} this week
                 </p>
               </div>
               <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center text-2xl">

@@ -2,7 +2,7 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
 import fs from 'fs';
 import path from 'path';
 
-interface ApplicationFormData {
+interface cadetFormData {
   entryId: string;
   gender: string;
   weightCategory: string;
@@ -16,9 +16,10 @@ interface ApplicationFormData {
   tfiIdCardNo: string;
   academicQualification: string;
   schoolName: string;
+  district: string;
 }
 
-export class ApplicationFormGenerator {
+export class CadetFormGenerator {
   private templatePath: string;
   private uploadDir: string;
 
@@ -32,7 +33,7 @@ export class ApplicationFormGenerator {
     }
   }
 
-  async generateApplicationForm(data: ApplicationFormData) {
+  async generateCadetForm(data: cadetFormData) {
     try {
       if (!fs.existsSync(this.templatePath)) {
         throw new Error(`Form template not found at: ${this.templatePath}`);
@@ -120,6 +121,7 @@ export class ApplicationFormGenerator {
       console.log(`✅ Application form generated: ${fileName}`);
 
       return {
+        success: true,
         filePath: `/forms/${fileName}`,
         fileName,
         entryId: data.entryId
