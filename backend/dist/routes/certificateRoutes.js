@@ -3,14 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const certificateController_1 = require("../controllers/certificateController");
-const Certificate_1 = require("../models/Certificate");
+const uploadMiddleware_1 = require("../middleware/uploadMiddleware");
 const router = (0, express_1.Router)();
-router.post('/generate', authMiddleware_1.authenticateToken, certificateController_1.createCertificate);
-router.get('/', authMiddleware_1.authenticateToken, certificateController_1.getCertificates);
+router.post('/generate', (0, authMiddleware_1.authenticateToken)(), certificateController_1.createCertificate);
+router.get('/', (0, authMiddleware_1.authenticateToken)(), certificateController_1.getCertificates);
+// Download Excel template for bulk certificate generation
+router.get('/template/download', (0, authMiddleware_1.authenticateToken)(), certificateController_1.downloadCertificateTemplate);
+// Bulk generate certificates from uploaded Excel file
+router.post('/bulk-generate', (0, authMiddleware_1.authenticateToken)(), uploadMiddleware_1.uploadExcel.single('file'), certificateController_1.bulkGenerateCertificates);
 // DELETE /api/certificates/:fileName - Delete specific certificate
 router.delete('/:fileName', certificateController_1.deleteCertificate);
-router.get('/api/certificates', async (req, res) => {
-    const certificates = await Certificate_1.Certificate.find();
-    res.status(200).json({ success: true, data: certificates });
-});
+// (Removed redundant /api/certificates nested route; root list already handled by GET '/')
 exports.default = router;

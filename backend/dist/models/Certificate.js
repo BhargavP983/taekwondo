@@ -38,8 +38,9 @@ const mongoose_1 = __importStar(require("mongoose"));
 const CertificateSchema = new mongoose_1.Schema({
     serial: { type: String, required: true, unique: true },
     name: { type: String, required: true },
-    date: { type: Date, required: true },
-    grade: { type: String, required: true },
+    dateOfBirth: { type: Date, required: true },
+    medal: { type: String, required: true },
+    category: { type: String, required: true },
     filePath: { type: String, required: true },
     generatedBy: { type: String, required: true },
     generatedAt: { type: Date, default: Date.now }

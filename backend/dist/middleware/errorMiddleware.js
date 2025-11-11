@@ -5,14 +5,16 @@ const errors_1 = require("../types/errors");
 const errorHandler = (err, req, res, next) => {
     if (err instanceof errors_1.AppError) {
         return res.status(err.statusCode).json({
-            status: err.status,
+            success: false,
+            status: err.statusCode,
             message: err.message,
         });
     }
     // Handle unexpected errors
     console.error('Unexpected error:', err);
     return res.status(500).json({
-        status: 'error',
+        success: false,
+        status: 500,
         message: 'Something went wrong',
     });
 };

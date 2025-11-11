@@ -84,6 +84,7 @@ class PoomsaeFormGenerator {
             fs_1.default.writeFileSync(filePath, buffer);
             console.log(`✅ Poomsae form generated: ${fileName}`);
             return {
+                success: true,
                 filePath: `/forms/${fileName}`,
                 fileName,
                 entryId: data.entryId

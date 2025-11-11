@@ -24,27 +24,27 @@ import PoomsaeEntryForm from './src/components/PoomsaeEntryForm';
 import SuperAdminDashboard from './pages/dashboards/SuperAdminDashboard';
 
 // Dashboard Page Components
-import UserManagement from './pages/dashboards/userManagement.tsx';
-import CadetApplications from './pages/dashboards/CadetApplications.tsx';
-import PoomsaeApplications from './pages/dashboards/PoomsaeApplications.tsx';
+import UserManagement from './pages/dashboards/userManagement';
+import CadetApplications from './pages/dashboards/CadetApplications';
+import PoomsaeApplications from './pages/dashboards/PoomsaeApplications';
 import GenerateCertificate from './pages/GenerateCertificate';
 
 // State Admin Dashboard Pages
-import StateAdminDashboard from './pages/dashboards/StateAdminDashboard.tsx';
-import StateAdminCadetApplications from './pages/dashboards/StateAdminCadetApplications.tsx';
-import StateAdminPoomsaeApplications from './pages/dashboards/StateAdminPoomsaeApplications.tsx';
+import StateAdminDashboard from './pages/dashboards/StateAdminDashboard';
+import StateAdminCadetApplications from './pages/dashboards/StateAdminCadetApplications';
+import StateAdminPoomsaeApplications from './pages/dashboards/StateAdminPoomsaeApplications';
 
 // District Admin Dashboard Pages
-import DistrictAdminDashboard from './pages/dashboards/DistrictAdminDashboard.tsx';
-import DistrictAdminManagement from './pages/dashboards/DistrictAdminManagement.tsx';
-import DistrictAdminCadetApplications from './pages/dashboards/DistrictAdminCadetApplications.tsx';
-import DistrictAdminPoomsaeApplications from './pages/dashboards/DistrictAdminPoomsaeApplications.tsx';
+import DistrictAdminDashboard from './pages/dashboards/DistrictAdminDashboard';
+import DistrictAdminManagement from './pages/dashboards/DistrictAdminManagement';
+import DistrictAdminCadetApplications from './pages/dashboards/DistrictAdminCadetApplications';
+import DistrictAdminPoomsaeApplications from './pages/dashboards/DistrictAdminPoomsaeApplications';
 
-import TestPage from './pages/dashboards/TestPage.tsx';
+import TestPage from './pages/dashboards/TestPage';
 import CertificateGenerator from './pages/GenerateCertificate';
 import CertificateList from './src/components/Certificatelist';
 import DistrictCertificatesPage from './src/components/DistrictCertificatesPage';
-import CertificatesList from './pages/dashboards/CertificatesList.tsx';
+import CertificatesList from './pages/dashboards/CertificatesList';
 
 function App() {
   return (

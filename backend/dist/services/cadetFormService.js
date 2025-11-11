@@ -83,6 +83,7 @@ class CadetFormGenerator {
             fs_1.default.writeFileSync(filePath, buffer);
             console.log(`✅ Application form generated: ${fileName}`);
             return {
+                success: true,
                 filePath: `/forms/${fileName}`,
                 fileName,
                 entryId: data.entryId

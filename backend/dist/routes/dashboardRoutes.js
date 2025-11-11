@@ -13,8 +13,8 @@ router.get('/stats', (0, authMiddleware_1.requireRole)('superAdmin'), (0, handle
 router.get('/activities', (0, authMiddleware_1.requireRole)('superAdmin'), (0, handlers_1.asHandler)(dashboardController_1.getRecentActivities));
 // State Admin routes
 router.get('/state/stats', (0, authMiddleware_1.requireRole)('stateAdmin', 'superAdmin'), (0, handlers_1.asHandler)(dashboardController_1.getDashboardStats));
-router.get('/state/activities', (0, authMiddleware_1.requireRole)('state_admin', 'super_admin'), (0, handlers_1.asHandler)(dashboardController_1.getRecentActivities));
+router.get('/state/activities', (0, authMiddleware_1.requireRole)('stateAdmin', 'superAdmin'), (0, handlers_1.asHandler)(dashboardController_1.getRecentActivities));
 // District Admin routes
-router.get('/district/stats', (0, authMiddleware_1.requireRole)('district_admin', 'state_admin', 'super_admin'), (0, handlers_1.asHandler)(dashboardController_1.getDashboardStats));
-router.get('/district/activities', (0, authMiddleware_1.requireRole)('district_admin', 'state_admin', 'super_admin'), (0, handlers_1.asHandler)(dashboardController_1.getRecentActivities));
+router.get('/district/stats', (0, authMiddleware_1.requireRole)('districtAdmin', 'stateAdmin', 'superAdmin'), (0, handlers_1.asHandler)(dashboardController_1.getDashboardStats));
+router.get('/district/activities', (0, authMiddleware_1.requireRole)('districtAdmin', 'stateAdmin', 'superAdmin'), (0, handlers_1.asHandler)(dashboardController_1.getRecentActivities));
 exports.default = router;

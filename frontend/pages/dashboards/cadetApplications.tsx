@@ -409,5 +409,4 @@ const CadetApplicationsComponent: React.FC = () => {
   );
 };
 
-export const CadetApplications = CadetApplicationsComponent;
-export default CadetApplications;
+export default CadetApplicationsComponent;

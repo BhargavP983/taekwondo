@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toggleDistrictAdmin = exports.deleteDistrictAdmin = exports.updateDistrictAdmin = exports.createDistrictAdmin = exports.listDistrictAdmins = exports.getAllUsers = exports.getProfile = exports.login = exports.toggleUserStatus = exports.deleteUser = exports.updateUser = exports.createUser = void 0;
+exports.adminResetPassword = exports.changePassword = exports.toggleDistrictAdmin = exports.deleteDistrictAdmin = exports.updateDistrictAdmin = exports.createDistrictAdmin = exports.listDistrictAdmins = exports.getAllUsers = exports.getProfile = exports.login = exports.toggleUserStatus = exports.deleteUser = exports.updateUser = exports.createUser = void 0;
 const user_1 = require("../models/user");
 const jwtUtils_1 = require("../utils/jwtUtils");
 const errors_1 = require("../types/errors");
@@ -365,3 +365,129 @@ const toggleDistrictAdmin = async (req, res) => {
     }
 };
 exports.toggleDistrictAdmin = toggleDistrictAdmin;
+// Change password for logged-in user
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user?.userId;
+        // Validate input
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'Current password and new password are required'
+            });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password must be at least 6 characters long'
+            });
+        }
+        // Find user with password
+        const user = await user_1.User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        // Verify current password
+        const isValidPassword = await user.comparePassword(currentPassword);
+        if (!isValidPassword) {
+            return res.status(401).json({
+                success: false,
+                message: 'Current password is incorrect'
+            });
+        }
+        // Update password (will be hashed by pre-save hook)
+        user.password = newPassword;
+        await user.save();
+        res.status(200).json({
+            success: true,
+            message: 'Password changed successfully'
+        });
+    }
+    catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to change password'
+        });
+    }
+};
+exports.changePassword = changePassword;
+// Admin reset password for other users (SuperAdmin for StateAdmin, StateAdmin for DistrictAdmin)
+const adminResetPassword = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { newPassword } = req.body;
+        const adminUser = req.user;
+        // Validate input
+        if (!newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password is required'
+            });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password must be at least 6 characters long'
+            });
+        }
+        // Find target user
+        const targetUser = await user_1.User.findById(userId);
+        if (!targetUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        // Authorization checks
+        if (adminUser?.role === 'superAdmin') {
+            // SuperAdmin can reset password for StateAdmin and DistrictAdmin
+            if (!['stateAdmin', 'districtAdmin'].includes(targetUser.role)) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only reset passwords for State Admins and District Admins'
+                });
+            }
+        }
+        else if (adminUser?.role === 'stateAdmin') {
+            // StateAdmin can only reset password for DistrictAdmin in their state
+            if (targetUser.role !== 'districtAdmin') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only reset passwords for District Admins'
+                });
+            }
+            if (targetUser.state !== adminUser.state) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only reset passwords for District Admins in your state'
+                });
+            }
+        }
+        else {
+            return res.status(403).json({
+                success: false,
+                message: 'You do not have permission to reset passwords'
+            });
+        }
+        // Update password (will be hashed by pre-save hook)
+        targetUser.password = newPassword;
+        await targetUser.save();
+        res.status(200).json({
+            success: true,
+            message: `Password reset successfully for ${targetUser.name}`
+        });
+    }
+    catch (error) {
+        console.error('Admin reset password error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to reset password'
+        });
+    }
+};
+exports.adminResetPassword = adminResetPassword;

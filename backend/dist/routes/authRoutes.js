@@ -25,4 +25,8 @@ router.post('/district-admins', (0, authMiddleware_1.authenticateToken)(), (0, a
 router.put('/district-admins/:userId', (0, authMiddleware_1.authenticateToken)(), (0, authMiddleware_1.requireRole)('stateAdmin', 'superAdmin'), (0, handlers_1.asHandler)(authController_1.updateDistrictAdmin));
 router.delete('/district-admins/:userId', (0, authMiddleware_1.authenticateToken)(), (0, authMiddleware_1.requireRole)('stateAdmin', 'superAdmin'), (0, handlers_1.asHandler)(authController_1.deleteDistrictAdmin));
 router.patch('/district-admins/:userId/toggle-status', (0, authMiddleware_1.authenticateToken)(), (0, authMiddleware_1.requireRole)('stateAdmin', 'superAdmin'), (0, handlers_1.asHandler)(authController_1.toggleDistrictAdmin));
+// Change password for any authenticated user
+router.post('/change-password', (0, authMiddleware_1.authenticateToken)(), (0, handlers_1.asHandler)(authController_1.changePassword));
+// Admin reset password for other users (SuperAdmin -> StateAdmin, StateAdmin -> DistrictAdmin)
+router.post('/admin-reset-password/:userId', (0, authMiddleware_1.authenticateToken)(), (0, authMiddleware_1.requireRole)('superAdmin', 'stateAdmin'), (0, handlers_1.asHandler)(authController_1.adminResetPassword));
 exports.default = router;

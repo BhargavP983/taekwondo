@@ -43,23 +43,31 @@ class CertificateService {
         ctx.fillText(data.name, 800, 1100);
         //                       ↑    ↑
         //                       X    Y
-        // X: 440 (starts after "Name:")
-        // Y: 590 (on the horizontal line)
-        // DATE - positioned on the line after "Date:"
+        // X: 800 (starts after "Name:")
+        // Y: 1100 (on the horizontal line)
+        // DATE OF BIRTH - positioned on the line after "Date of Birth:"
         ctx.font = '80px Arial';
         ctx.fillStyle = '#000000';
         ctx.textAlign = 'left';
-        ctx.fillText(data.date, 800, 1325);
+        const formattedDate = new Date(data.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        ctx.fillText(formattedDate, 800, 1325);
         //                      ↑    ↑
-        // X: 440 (starts after "Date:")
-        // Y: 700 (on the horizontal line)
-        // GRADE - positioned on the line after "Grade:"
+        // X: 800 (starts after "Date of Birth:")
+        // Y: 1325 (on the horizontal line)
+        // MEDAL - positioned on the line after "Medal:"
         ctx.font = 'bold 100px Arial';
         ctx.fillStyle = '#000000';
-        ctx.fillText(data.grade, 930, 1550);
+        ctx.fillText(data.medal, 930, 1550);
         //                       ↑    ↑
-        // X: 440 (starts after "Grade:")
-        // Y: 810 (on the horizontal line)
+        // X: 930 (starts after "Medal:")
+        // Y: 1550 (on the horizontal line)
+        // CATEGORY - positioned on the line after "Category:"
+        ctx.font = '80px Arial';
+        ctx.fillStyle = '#000000';
+        ctx.fillText(data.category, 930, 1775);
+        //                       ↑    ↑
+        // X: 930 (starts after "Category:")
+        // Y: 1775 (on the horizontal line)
         // SERIAL NUMBER - top right corner (on the decorative border pattern)
         ctx.font = '50px Arial';
         ctx.fillStyle = '#666666';
@@ -84,8 +92,9 @@ class CertificateService {
         const doc = await Certificate_1.Certificate.create({
             serial,
             name: data.name,
-            date: new Date(data.date),
-            grade: data.grade,
+            dateOfBirth: new Date(data.dateOfBirth),
+            medal: data.medal,
+            category: data.category,
             generatedBy: data.generatedBy,
             filePath: downloadUrl
         });

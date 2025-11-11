@@ -1,6 +1,31 @@
 # Ubuntu VPS Deployment Guide
 
-## Prerequisites
+## 🚀 Quick Start: Automated Deployment
+
+**NEW!** We now have an automated deployment script that handles the entire setup process with error handling and retry mechanisms.
+
+**For automated deployment, see:** [AUTOMATED_DEPLOYMENT.md](./AUTOMATED_DEPLOYMENT.md)
+
+Simply run:
+```powershell
+# From Windows
+.\deploy.ps1
+```
+
+The script will automatically:
+- ✅ Install all dependencies (Node.js, MongoDB, PM2, Nginx)
+- ✅ Configure security (firewall, MongoDB auth)
+- ✅ Deploy backend and frontend
+- ✅ Setup automated backups
+- ✅ Retry failed operations automatically
+
+**Continue reading below for manual deployment steps.**
+
+---
+
+## Manual Deployment Guide
+
+### Prerequisites
 - Ubuntu VPS (20.04 or 22.04 recommended)
 - Root or sudo access
 - SSH access to your VPS
@@ -146,14 +171,15 @@ cd -taekwondo
 # From your Windows machine (PowerShell or Git Bash)
 cd "X:\Web Dev\Gemini\-taekwondo"
 
+# IMPORTANT: Remove trailing slashes to copy the entire folder structure correctly
 # Upload backend (includes src/templates folder)
-scp -r backend/ deploy@your-vps-ip:/home/deploy/apps/-taekwondo/
+scp -r backend deploy@your-vps-ip:/home/deploy/apps/-taekwondo/
 
-# Upload frontend
-scp -r frontend/ deploy@your-vps-ip:/home/deploy/apps/-taekwondo/
+# Upload frontend (includes all pages and components)
+scp -r frontend deploy@your-vps-ip:/home/deploy/apps/-taekwondo/
 
-# OR use FileZilla/WinSCP for GUI upload
-# Important: Make sure to transfer the entire backend folder including src/templates/
+# OR use FileZilla/WinSCP for GUI upload (Recommended for Windows)
+# Important: Make sure to transfer the entire folder structure including all subdirectories
 ```
 
 #### Option C: Using rsync (Best for updates)
@@ -311,12 +337,23 @@ Save and exit
 # Install dependencies
 npm install
 
+# IMPORTANT: Verify all files were transferred correctly
+echo "Checking if dashboard files exist..."
+ls -la pages/dashboards/CadetApplications.tsx
+ls -la pages/dashboards/PoomsaeApplications.tsx
+ls -la pages/dashboards/CertificatesList.tsx
+
+# If files are missing, you need to re-transfer the frontend folder
+# Check the complete directory structure
+find pages -name "*.tsx" | head -20
+
 # Build for production
 npm run build
 
-# If you encounter "Could not resolve" errors on Linux:
-# This is due to case-sensitivity. The files exist but may need explicit .tsx extensions
-# The build should work if all files are transferred correctly
+# IMPORTANT NOTE: Do NOT add .tsx extensions to imports in App.tsx
+# Vite handles module resolution automatically
+# The imports should look like: import Component from './pages/Component'
+# NOT: import Component from './pages/Component.tsx'
 
 # The build output is in the 'dist' folder
 ls -la dist
@@ -616,17 +653,37 @@ sudo systemctl status mongod
 When you make code changes:
 
 ```bash
-# On your local machine, push to git
+# On your local machine, commit and push to git
 git add .
 git commit -m "Your changes"
-git push
+git push origin main
 
 # On your VPS
 ssh deploy@your-vps-ip
 cd /home/deploy/apps/-taekwondo
 
-# Pull latest changes
-git pull
+# Check if you have local changes on VPS
+git status
+
+# If you have modified files on VPS, you have 3 options:
+
+# Option 1: Discard VPS changes (recommended - get fresh code)
+git reset --hard HEAD
+git pull origin main
+
+# Option 2: Stash VPS changes (save for later)
+git stash
+git pull origin main
+# To reapply: git stash pop
+
+# Option 3: If git is messy, delete and re-clone
+# cd /home/deploy/apps
+# cp -taekwondo/backend/.env ~/backend.env.backup
+# cp -taekwondo/frontend/.env.production ~/frontend.env.backup
+# rm -rf -taekwondo
+# git clone https://github.com/BhargavP983/-taekwondo.git
+# cp ~/backend.env.backup -taekwondo/backend/.env
+# cp ~/frontend.env.backup -taekwondo/frontend/.env.production
 
 # Update backend
 cd backend
@@ -646,6 +703,170 @@ npm run build
 
 ## Part 5: Troubleshooting
 
+### Common Issues & Solutions
+
+#### 1. Backend Build Error: "tsc: not found"
+```bash
+# Problem: TypeScript compiler not installed
+# Solution: Install ALL dependencies (not just production)
+cd /home/deploy/apps/-taekwondo/backend
+npm install  # NOT npm install --production
+npm run build
+```
+
+#### 2. Frontend Build Error: "Could not resolve ./pages/dashboards/CadetApplications"
+```bash
+# Problem: Files not transferred correctly OR in wrong location
+# Solution: Verify file structure
+cd /home/deploy/apps/-taekwondo/frontend
+ls -la pages/dashboards/CadetApplications.tsx
+
+# If missing, re-transfer using WinSCP or tar+scp method
+# See "Transfer Files to VPS" section above
+```
+
+#### 3. Frontend Build Error: "default is not exported"
+```bash
+# Problem: Export/import mismatch or old code
+# Solution: Make sure you have the latest code
+cd /home/deploy/apps/-taekwondo
+git reset --hard HEAD
+git pull origin main
+cd frontend
+npm install
+npm run build
+```
+
+#### 4. PM2: Backend crashes immediately
+```bash
+# Problem: Usually .env file issues or MongoDB connection
+# Solution: Check logs and verify environment
+pm2 logs taekwondo-backend --err
+
+# Common fixes:
+# 1. Check .env file exists and has correct values
+cat backend/.env | grep MONGODB_URI
+
+# 2. Test MongoDB connection
+mongosh "mongodb://taekwondo_user:YourPassword@localhost:27017/ap-taekwondo"
+
+# 3. Verify dist folder exists
+ls -la backend/dist/
+```
+
+#### 5. Certificate Generation Fails: "Template not found"
+```bash
+# Problem: Template files not transferred
+# Solution: Verify templates exist
+ls -la /home/deploy/apps/-taekwondo/backend/src/templates/
+
+# Should see: certificate-template.png, cadet-form-template.JPG, etc.
+# If missing, re-transfer the entire backend folder
+```
+
+#### 6. Nginx: 502 Bad Gateway
+```bash
+# Problem: Backend not running or wrong port
+# Solution: Check backend status
+pm2 status
+pm2 logs taekwondo-backend
+
+# Verify backend is listening on port 5000
+sudo lsof -i :5000
+# Should show: node running on port 5000
+
+# Restart if needed
+pm2 restart taekwondo-backend
+```
+
+#### 7. Frontend shows blank page
+```bash
+# Problem: Build failed or files not in correct location
+# Solution: Check Nginx logs and verify dist folder
+sudo tail -f /var/log/nginx/error.log
+
+# Verify dist folder exists with files
+ls -la /home/deploy/apps/-taekwondo/frontend/dist/
+# Should see: index.html and assets/ folder
+
+# If missing, rebuild
+cd /home/deploy/apps/-taekwondo/frontend
+npm run build
+```
+
+#### 8. CORS Error: "blocked by CORS policy"
+```bash
+# Problem: Backend CORS_ORIGIN doesn't include frontend URL
+# Solution: Update backend .env
+nano /home/deploy/apps/-taekwondo/backend/.env
+
+# Make sure CORS_ORIGIN includes your frontend URL:
+CORS_ORIGIN=http://your-vps-ip,http://your-vps-ip:5173
+
+# Restart backend
+pm2 restart taekwondo-backend
+```
+
+#### 9. Login fails with 401 Unauthorized
+```bash
+# Problem: MongoDB authentication or JWT issues
+# Solution: Check multiple things
+
+# 1. Verify MongoDB user exists
+mongosh
+use ap-taekwondo
+db.getUsers()
+
+# 2. Check JWT_SECRET is set in .env
+cat backend/.env | grep JWT_SECRET
+
+# 3. Check backend logs
+pm2 logs taekwondo-backend
+
+# 4. Verify backend is connecting to correct database
+pm2 logs taekwondo-backend | grep -i mongodb
+```
+
+#### 10. File Upload Fails
+```bash
+# Problem: Permission issues or directory doesn't exist
+# Solution: Create and set permissions
+cd /home/deploy/apps/-taekwondo/backend
+
+mkdir -p uploads/certificate uploads/forms data
+chmod -R 755 uploads data
+
+# Verify ownership
+ls -la uploads/
+# Should be owned by deploy user
+```
+
+#### 11. PM2 doesn't restart on server reboot
+```bash
+# Problem: PM2 startup not configured
+# Solution: Setup PM2 startup
+pm2 save
+pm2 startup
+# Copy and run the command it outputs
+
+# Test: sudo reboot
+# After reboot: pm2 status (should show app running)
+```
+
+#### 12. MongoDB connection fails after restart
+```bash
+# Problem: MongoDB authentication config not persistent
+# Solution: Verify mongod.conf has authorization enabled
+sudo cat /etc/mongod.conf | grep authorization
+# Should show: authorization: enabled
+
+# If not:
+sudo nano /etc/mongod.conf
+# Add under security:
+#   authorization: enabled
+sudo systemctl restart mongod
+```
+
 ### Backend not starting?
 ```bash
 # Check PM2 logs
@@ -656,6 +877,42 @@ sudo lsof -i :5000
 
 # Check MongoDB connection
 mongosh "mongodb://taekwondo_user:password@localhost:27017/ap-taekwondo"
+```
+
+### Frontend build fails with "Could not resolve" error?
+```bash
+# This usually means files weren't transferred correctly
+cd /home/deploy/apps/-taekwondo/frontend
+
+# Check if pages directory exists
+ls -la pages/
+
+# Check if dashboard files exist
+ls -la pages/dashboards/
+
+# List all tsx files
+find pages -name "*.tsx"
+
+# If files are missing, re-transfer from your local machine:
+# From Windows: Use WinSCP or FileZilla to upload the entire frontend folder
+# Or use rsync/scp (remove the trailing slash from folder names)
+```
+
+### Frontend build fails with "default is not exported" error?
+```bash
+# This was fixed in the latest code
+# Make sure you have the updated files with simplified exports
+# Re-transfer or pull the latest code:
+
+cd /home/deploy/apps/-taekwondo
+git pull  # If using Git
+
+# Or re-upload the frontend folder if not using Git
+# Then rebuild:
+cd frontend
+rm -rf node_modules dist
+npm install
+npm run build
 ```
 
 ### Frontend shows blank page?

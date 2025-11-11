@@ -37,6 +37,21 @@ const authenticateToken = () => {
     };
 };
 exports.authenticateToken = authenticateToken;
+// Normalize legacy snake_case roles to camelCase
+const normalizeRole = (role) => {
+    switch (role) {
+        case 'super_admin': return 'superAdmin';
+        case 'state_admin': return 'stateAdmin';
+        case 'district_admin': return 'districtAdmin';
+        case 'superAdmin':
+        case 'stateAdmin':
+        case 'districtAdmin':
+        case 'user':
+            return role;
+        default:
+            return 'user';
+    }
+};
 const requireRole = (...roles) => {
     return (req, res, next) => {
         try {
@@ -44,7 +59,16 @@ const requireRole = (...roles) => {
             if (!authReq.user) {
                 throw new errors_1.AuthenticationError();
             }
-            if (!roles.includes(authReq.user.role)) {
+            const userRole = normalizeRole(authReq.user.role);
+            const allowed = roles.map(normalizeRole);
+            console.log('[auth] requireRole check:', {
+                path: req.path,
+                userId: authReq.user.userId,
+                incomingRole: authReq.user.role,
+                normalizedRole: userRole,
+                allowedRoles: allowed
+            });
+            if (!allowed.includes(userRole)) {
                 throw new errors_1.AuthorizationError(`Required role: ${roles.join(' or ')}`);
             }
             next();
@@ -62,8 +86,20 @@ const requireRoleOrSelf = (...roles) => {
             if (!authReq.user) {
                 throw new errors_1.AuthenticationError();
             }
-            const hasRequiredRole = roles.includes(authReq.user.role);
+            const userRole = normalizeRole(authReq.user.role);
+            const allowed = roles.map(normalizeRole);
+            const hasRequiredRole = allowed.includes(userRole);
             const isSelfAccess = authReq.user.userId === authReq.params.userId;
+            console.log('[auth] requireRoleOrSelf check:', {
+                path: req.path,
+                userId: authReq.user.userId,
+                targetUserId: authReq.params.userId,
+                incomingRole: authReq.user.role,
+                normalizedRole: userRole,
+                allowedRoles: allowed,
+                hasRequiredRole,
+                isSelfAccess
+            });
             if (!hasRequiredRole && !isSelfAccess) {
                 throw new errors_1.AuthorizationError('Insufficient permissions');
             }

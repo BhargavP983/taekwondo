@@ -130,4 +130,6 @@ const poomsaeSchema = new mongoose_1.Schema({
 poomsaeSchema.index({ name: 1 });
 poomsaeSchema.index({ division: 1 });
 poomsaeSchema.index({ createdAt: -1 });
+// Ensure uniqueness only for non-empty TFI ID values
+poomsaeSchema.index({ tfiIdNo: 1 }, { unique: true, partialFilterExpression: { tfiIdNo: { $exists: true, $gt: '' } } });
 exports.Poomsae = mongoose_1.default.model('Poomsae', poomsaeSchema);

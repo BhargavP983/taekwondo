@@ -115,4 +115,6 @@ const cadetSchema = new mongoose_1.Schema({
 // Indexes for faster searches
 cadetSchema.index({ name: 1 });
 cadetSchema.index({ createdAt: -1 });
+// Ensure uniqueness only for non-empty TFI ID values (allow multiple blank strings)
+cadetSchema.index({ tfiIdCardNo: 1 }, { unique: true, partialFilterExpression: { tfiIdCardNo: { $exists: true, $gt: '' } } });
 exports.Cadet = mongoose_1.default.model('Cadet', cadetSchema);
