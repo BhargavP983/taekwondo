@@ -263,7 +263,20 @@ mongosh -u taekwondo_user -p --authenticationDatabase ap-taekwondo
 
 ## 🛠️ Manual Fixes for Common Issues
 
-### Issue 1: MongoDB Connection Failed
+### Issue 1: tsc Permission Denied
+
+**Symptom:** Build fails with "sh: 1: tsc: Permission denied"
+
+**Fix:**
+```bash
+cd /home/deploy/apps/-taekwondo/backend
+chmod -R +x node_modules/.bin/
+npm run build
+```
+
+**Note:** The updated deployment script now automatically fixes this.
+
+### Issue 2: MongoDB Connection Failed
 
 **Symptom:** Backend logs show "MongoServerError: Authentication failed"
 
@@ -283,7 +296,7 @@ nano .env
 pm2 restart taekwondo-backend
 ```
 
-### Issue 2: Backend Won't Start
+### Issue 3: Backend Won't Start
 
 **Symptom:** PM2 shows "errored" or "stopped"
 
@@ -308,7 +321,7 @@ sudo lsof -i :5000
 pm2 restart taekwondo-backend
 ```
 
-### Issue 3: Frontend Shows Blank Page
+### Issue 4: Frontend Shows Blank Page
 
 **Symptom:** Browser shows empty white page
 
@@ -319,6 +332,7 @@ ls -la /home/deploy/apps/-taekwondo/frontend/dist/
 
 # Rebuild if missing
 cd /home/deploy/apps/-taekwondo/frontend
+chmod -R +x node_modules/.bin/  # Fix permissions if needed
 npm run build
 
 # Check Nginx config
@@ -328,7 +342,7 @@ sudo systemctl restart nginx
 # Check browser console (F12) for specific errors
 ```
 
-### Issue 4: 502 Bad Gateway
+### Issue 5: 502 Bad Gateway
 
 **Symptom:** Nginx returns 502 error
 
@@ -346,7 +360,7 @@ pm2 restart taekwondo-backend
 sudo systemctl restart nginx
 ```
 
-### Issue 5: CORS Errors
+### Issue 6: CORS Errors
 
 **Symptom:** Browser console shows CORS policy errors
 

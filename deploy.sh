@@ -339,6 +339,13 @@ step9_setup_backend() {
     print_info "Installing backend dependencies..."
     retry_command "npm install" "Install backend npm packages" || return 1
     
+    # Fix permissions for node_modules/.bin
+    if [ -d "node_modules/.bin" ]; then
+        print_info "Setting execute permissions for node_modules/.bin..."
+        chmod -R +x node_modules/.bin/
+        print_success "Permissions updated"
+    fi
+    
     # Create .env file
     if [ ! -f ".env" ]; then
         print_info "Creating backend .env file..."
@@ -406,6 +413,13 @@ step10_setup_frontend() {
     # Install dependencies
     print_info "Installing frontend dependencies..."
     retry_command "npm install" "Install frontend npm packages" || return 1
+    
+    # Fix permissions for node_modules/.bin
+    if [ -d "node_modules/.bin" ]; then
+        print_info "Setting execute permissions for node_modules/.bin..."
+        chmod -R +x node_modules/.bin/
+        print_success "Permissions updated"
+    fi
     
     # Create .env.production file
     if [ ! -f ".env.production" ]; then
