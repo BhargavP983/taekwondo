@@ -440,6 +440,9 @@ EOF
     # Verify pages directory structure
     if [ ! -d "pages/dashboards" ]; then
         print_error "Dashboard pages directory not found!"
+        print_info "Current directory: $(pwd)"
+        print_info "Directory contents:"
+        ls -la
         print_error "Please ensure all files were transferred correctly"
         return 1
     fi
@@ -452,12 +455,25 @@ EOF
         "App.tsx"
     )
     
+    missing_files=()
     for file in "${critical_files[@]}"; do
         if [ ! -f "$file" ]; then
-            print_error "Critical file missing: $file"
-            return 1
+            missing_files+=("$file")
         fi
     done
+    
+    if [ ${#missing_files[@]} -gt 0 ]; then
+        print_error "Critical files missing:"
+        for file in "${missing_files[@]}"; do
+            echo "  - $file"
+        done
+        print_info "Current directory: $(pwd)"
+        print_info "Checking pages/dashboards contents:"
+        ls -la pages/dashboards/ 2>/dev/null || echo "  Directory doesn't exist"
+        print_warning "Files may not have been transferred to VPS properly"
+        print_info "Run 'git status' to check if files need to be pulled"
+        return 1
+    fi
     
     print_success "All critical files verified"
     
