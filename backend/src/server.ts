@@ -10,6 +10,7 @@ import cadetRoutes from './routes/cadetRoutes';
 import poomsaeRoutes from './routes/poomsaeRoutes';
 import authRoutes from './routes/authRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+import exportRoutes from './routes/exportRoutes';
 import connectDB from './config/database';
 
 // Load environment variables
@@ -55,7 +56,7 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range', 'Content-Disposition'],
 }));
 
 console.log('✅ CORS enabled for development URLs');
@@ -100,19 +101,42 @@ app.use('/api/cadets', cadetRoutes); // Register cadet routes
 app.use('/api/poomsae', poomsaeRoutes); // Register poomsae routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/export', exportRoutes); // Register export routes
 
 console.log('✅ Routes registered');
 
-// Health check
-app.get('/health', (req: Request, res: Response) => {
+// Health check with proper database status
+app.get('/health', async (req: Request, res: Response) => {
   console.log('🏥 Health check requested');
   const mongoose = require('mongoose');
-  res.status(200).json({ 
-    status: 'OK', 
-    message: 'Backend server is running',
-    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-    timestamp: new Date().toISOString()
-  });
+  
+  try {
+    // Check database connection state
+    const dbState = mongoose.connection.readyState;
+    const dbStatus = dbState === 1 ? 'Connected' : 
+                     dbState === 2 ? 'Connecting' : 
+                     dbState === 0 ? 'Disconnected' : 'Unknown';
+    
+    // Try a quick ping to verify database is responsive
+    if (dbState === 1) {
+      await mongoose.connection.db.admin().ping();
+    }
+    
+    res.status(200).json({ 
+      status: 'OK', 
+      message: 'Backend server is running',
+      database: dbStatus,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Health check failed:', error);
+    res.status(503).json({ 
+      status: 'ERROR', 
+      message: 'Service temporarily unavailable',
+      database: 'Error',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // 404 handler

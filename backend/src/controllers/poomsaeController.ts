@@ -5,6 +5,7 @@ import { poomsaeEntrySchema } from '../schemas/poomsaeSchemas';
 import { ValidationError } from '../types/errors';
 import { IPoomsae } from '../models/poomsae';
 import { getNextSequence } from '../models/counter';
+import { AuthRequest } from '../middleware/authMiddleware';
 
 const formGenerator = new PoomsaeFormGenerator();
 
@@ -152,7 +153,7 @@ export const createPoomsaeEntry = async (req: Request, res: Response) => {
   }
 };
 
-export const getAllPoomsaeEntries = async (req: Request, res: Response) => {
+export const getAllPoomsaeEntries = async (req: AuthRequest, res: Response) => {
   try {
     console.log('📡 Poomsae API called with query:', req.query);
     
@@ -165,9 +166,34 @@ export const getAllPoomsaeEntries = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
+    // Filters based on user role
     const filter: any = {};
-    if (req.query.division) filter.division = req.query.division;
-    if (req.query.category) filter.category = req.query.category;
+    
+    // District admins can ONLY see their own district
+    if (req.user?.role === 'districtAdmin') {
+      if (!req.user.district) {
+        return res.status(400).json({
+          success: false,
+          message: 'District information not found for district admin'
+        });
+      }
+      filter.district = req.user.district;
+    }
+    // State admins can ONLY see their own state
+    else if (req.user?.role === 'stateAdmin') {
+      if (!req.user.state) {
+        return res.status(400).json({
+          success: false,
+          message: 'State information not found for state admin'
+        });
+      }
+      filter.stateOrg = req.user.state;
+    }
+    // Super admins can apply query filters
+    else if (req.user?.role === 'superAdmin') {
+      if (req.query.division) filter.division = req.query.division;
+      if (req.query.category) filter.category = req.query.category;
+    }
 
     console.log('🔍 Poomsae filter:', filter);
     console.log('⏳ Starting database query...');
@@ -217,16 +243,42 @@ export const getAllPoomsaeEntries = async (req: Request, res: Response) => {
   }
 };
 
-export const getPoomsaeStats = async (req: Request, res: Response) => {
+export const getPoomsaeStats = async (req: AuthRequest, res: Response) => {
   try {
-    const totalEntries = await Poomsae.countDocuments();
+    // Build filter based on user role
+    const filter: Record<string, any> = {};
+    
+    // District admins can ONLY see their own district stats
+    if (req.user?.role === 'districtAdmin') {
+      if (!req.user.district) {
+        return res.status(400).json({
+          success: false,
+          message: 'District information not found for district admin'
+        });
+      }
+      filter.district = req.user.district;
+    }
+    // State admins can ONLY see their own state stats
+    else if (req.user?.role === 'stateAdmin') {
+      if (!req.user.state) {
+        return res.status(400).json({
+          success: false,
+          message: 'State information not found for state admin'
+        });
+      }
+      filter.stateOrg = req.user.state;
+    }
+
+    const totalEntries = await Poomsae.countDocuments(filter);
     
     const byDivision = await Poomsae.aggregate([
+      { $match: filter },
       { $group: { _id: '$division', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
     
     const byCategory = await Poomsae.aggregate([
+      { $match: filter },
       { $group: { _id: '$category', count: { $sum: 1 } } }
     ]);
 
@@ -246,15 +298,40 @@ export const getPoomsaeStats = async (req: Request, res: Response) => {
   }
 };
 
-export const deletePoomsaeEntry = async (req: Request, res: Response) => {
+export const deletePoomsaeEntry = async (req: AuthRequest, res: Response) => {
   try {
     const { entryId } = req.params;
-    const poomsae = await Poomsae.findOneAndDelete({ entryId });
+    
+    // Build filter based on user role
+    const filter: Record<string, any> = { entryId };
+    
+    // District admins can ONLY delete their own district's entries
+    if (req.user?.role === 'districtAdmin') {
+      if (!req.user.district) {
+        return res.status(400).json({
+          success: false,
+          message: 'District information not found for district admin'
+        });
+      }
+      filter.district = req.user.district;
+    }
+    // State admins can ONLY delete their own state's entries
+    else if (req.user?.role === 'stateAdmin') {
+      if (!req.user.state) {
+        return res.status(400).json({
+          success: false,
+          message: 'State information not found for state admin'
+        });
+      }
+      filter.stateOrg = req.user.state;
+    }
+
+    const poomsae = await Poomsae.findOneAndDelete(filter);
 
     if (!poomsae) {
       return res.status(404).json({
         success: false,
-        message: 'Entry not found'
+        message: 'Entry not found or access denied'
       });
     }
 
@@ -270,10 +347,35 @@ export const deletePoomsaeEntry = async (req: Request, res: Response) => {
   }
 };
 
-export const getPoomsaeEntryById = async (req: Request, res: Response) => {
+export const getPoomsaeEntryById = async (req: AuthRequest, res: Response) => {
   try {
     const { entryId } = req.params;
-    const poomsae = await Poomsae.findOne({ entryId });
+    
+    // Build filter based on user role
+    const filter: Record<string, any> = { entryId };
+    
+    // District admins can ONLY see their own district
+    if (req.user?.role === 'districtAdmin') {
+      if (!req.user.district) {
+        return res.status(400).json({
+          success: false,
+          message: 'District information not found for district admin'
+        });
+      }
+      filter.district = req.user.district;
+    }
+    // State admins can ONLY see their own state
+    else if (req.user?.role === 'stateAdmin') {
+      if (!req.user.state) {
+        return res.status(400).json({
+          success: false,
+          message: 'State information not found for state admin'
+        });
+      }
+      filter.stateOrg = req.user.state;
+    }
+
+    const poomsae = await Poomsae.findOne(filter);
 
     if (!poomsae) {
       return res.status(404).json({
@@ -293,3 +395,117 @@ export const getPoomsaeEntryById = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Get poomsae entries for district admin (filtered by their district)
+export const getPoomsaeForDistrictAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const userDistrict = req.user?.district;
+    if (!userDistrict) {
+      return res.status(400).json({
+        success: false,
+        message: 'District information not found'
+      });
+    }
+
+    const page = Math.max(parseInt(req.query.page as string || '1', 10), 1);
+    const limit = Math.min(parseInt(req.query.limit as string || '10', 10), 100);
+    const skip = (page - 1) * limit;
+
+    // Filters
+    const filter: Record<string, any> = { district: userDistrict };
+    if (req.query.gender) filter.gender = req.query.gender;
+    if (req.query.division) filter.division = req.query.division;
+    if (req.query.category) filter.category = req.query.category;
+
+    // Execute query with pagination
+    const [poomsae, total] = await Promise.all([
+      Poomsae.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Poomsae.countDocuments(filter)
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: 'Poomsae entries retrieved successfully',
+      data: {
+        items: poomsae.map(p => formatPoomsaeResponse(p as unknown as IPoomsae)),
+        total,
+        page,
+        pageSize: limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch poomsae entries'
+    });
+  }
+};
+
+// Get district poomsae statistics
+export const getDistrictPoomsaeStats = async (req: AuthRequest, res: Response) => {
+  try {
+    const userDistrict = req.user?.district;
+    if (!userDistrict) {
+      return res.status(400).json({
+        success: false,
+        message: 'District information not found'
+      });
+    }
+
+    const totalEntries = await Poomsae.countDocuments({ district: userDistrict });
+
+    // Group by gender
+    const byGender = await Poomsae.aggregate([
+      { $match: { district: userDistrict } },
+      { $group: { _id: '$gender', count: { $sum: 1 } } }
+    ]);
+
+    // Group by division
+    const byDivision = await Poomsae.aggregate([
+      { $match: { district: userDistrict } },
+      { $group: { _id: '$division', count: { $sum: 1 } } }
+    ]);
+
+    // Group by category
+    const byCategory = await Poomsae.aggregate([
+      { $match: { district: userDistrict } },
+      { $group: { _id: '$category', count: { $sum: 1 } } }
+    ]);
+
+    // Recent entries (last 10)
+    const recentEntries = await Poomsae.find({ district: userDistrict })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('entryId name stateOrg createdAt')
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      message: 'District poomsae statistics retrieved successfully',
+      data: {
+        totalEntries,
+        byGender,
+        byDivision,
+        byCategory,
+        recentEntries: recentEntries.map(entry => ({
+          id: entry._id.toString(),
+          entryId: entry.entryId,
+          name: entry.name,
+          state: entry.stateOrg,
+          createdAt: entry.createdAt
+        }))
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch district poomsae statistics'
+    });
+  }
+};
+

@@ -5,7 +5,8 @@ import {
   getCadetByEntryId,
   deleteCadetEntry,
   getCadetStats,
-  getCadetsForDistrictAdmin
+  getCadetsForDistrictAdmin,
+  getDistrictCadetStats
 } from '../controllers/cadetController';
 import { authenticateToken, requireRole } from '../middleware/authMiddleware';
 import { asHandler } from '../types/handlers';
@@ -24,6 +25,12 @@ router.get(
   authenticateToken(),
   requireRole('districtAdmin', 'superAdmin', 'district_admin', 'super_admin'),
   asHandler(getCadetsForDistrictAdmin)
+);
+router.get(
+  '/district/stats',
+  authenticateToken(),
+  requireRole('districtAdmin', 'superAdmin', 'district_admin', 'super_admin'),
+  asHandler(getDistrictCadetStats as any)
 );
 router.get('/stats', authenticateToken(), asHandler(getCadetStats as any));
 router.get<EntryParams>('/:entryId', authenticateToken(), asHandler(getCadetByEntryId));

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { certificateApi, districtAdminAPI } from '../../services/api';
+import { certificateApi, districtAdminAPI, exportAPI } from '../../services/api';
 import CertificateList from '../../src/components/Certificatelist';
+import ChangePasswordModal from './ChangePasswordModal';
 
 interface DistrictStats {
     district: string;
@@ -38,6 +39,9 @@ const DistrictAdminDashboard: React.FC = () => {
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [showChangePassword, setShowChangePassword] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+    const [exportLoading, setExportLoading] = useState(false);
 
     useEffect(() => {
         fetchDashboardData();
@@ -48,17 +52,68 @@ const DistrictAdminDashboard: React.FC = () => {
             setLoading(true);
             const statsResponse = await districtAdminAPI.getStats();
 
-            if (statsResponse.success) {
-                setStats(statsResponse.data);
+            if (statsResponse.success && statsResponse.data) {
+                // Normalize backend stats to match frontend expectations
+                const rawStats = statsResponse.data;
+                const normalized: DistrictStats = {
+                    district: user?.district || '',
+                    overview: {
+                        totalCadets: rawStats.totalEntries || 0,
+                        totalPoomsae: 0, // District stats only returns cadet stats for now
+                        totalApplications: rawStats.totalEntries || 0,
+                        recentCadets: 0, // Backend doesn't provide this breakdown
+                        recentPoomsae: 0
+                    },
+                    cadetsByGender: rawStats.byGender || [],
+                    poomsaeByDivision: [],
+                    poomsaeByCategory: [],
+                    recentRegistrations: (rawStats.recentEntries || []).map((entry: any) => ({
+                        entryId: entry.entryId,
+                        name: entry.name,
+                        district: user?.district || '',
+                        createdAt: entry.createdAt
+                    }))
+                };
+                setStats(normalized);
             }
 
-            // districtAdminAPI does not expose a getActivities method; clear activities
-            // or replace this with a valid API call (e.g. certificateApi.getActivities) if available.
+            // Clear activities as no endpoint available yet
             setActivities([]);
         } catch (err: any) {
             setError(err.message || 'Failed to load dashboard');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePasswordChangeSuccess = () => {
+        setSuccessMessage('Password changed successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+    };
+
+    const handleExportCadets = async () => {
+        try {
+            setExportLoading(true);
+            await exportAPI.exportCadets();
+            setSuccessMessage('Cadet applications exported successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Failed to export cadet applications');
+        } finally {
+            setExportLoading(false);
+        }
+    };
+
+    const handleExportPoomsae = async () => {
+        try {
+            setExportLoading(true);
+            await exportAPI.exportPoomsae();
+            setSuccessMessage('Poomsae applications exported successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+        } catch (err: any) {
+            setError(err.message || 'Failed to export poomsae applications');
+        } finally {
+            setExportLoading(false);
         }
     };
 
@@ -86,10 +141,43 @@ const DistrictAdminDashboard: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                     <p className="mt-4 text-gray-600">Loading dashboard...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="text-center bg-white p-8 rounded-lg shadow-lg">
+                    <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
+                    <p className="text-gray-600 mb-4">{error}</p>
+                    <button
+                        onClick={fetchDashboardData}
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!stats) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="text-center bg-white p-8 rounded-lg shadow-lg">
+                    <p className="text-gray-600 mb-4">No dashboard data available</p>
+                    <button 
+                        onClick={fetchDashboardData} 
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        Refresh
+                    </button>
                 </div>
             </div>
         );
@@ -107,23 +195,47 @@ const DistrictAdminDashboard: React.FC = () => {
                             <p className="text-sm text-gray-600">{stats?.district || user?.district} - {user?.email}</p>
                         </div>
                     </div>
-                    <button
-                        onClick={logout}
-                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-semibold"
-                    >
-                        Logout
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setShowChangePassword(true)}
+                            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition font-semibold flex items-center gap-2"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                            Change Password
+                        </button>
+                        <button
+                            onClick={logout}
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-semibold"
+                        >
+                            Logout
+                        </button>
+                    </div>
                 </div>
             </header>
 
+            {/* Success Message */}
+            {successMessage && (
+                <div className="container mx-auto px-4 pt-4">
+                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>{successMessage}</span>
+                        </div>
+                        <button onClick={() => setSuccessMessage('')} className="text-green-700 hover:text-green-900">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
-                {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-                        {error}
-                    </div>
-                )}
-
                 {/* Welcome Banner */}
                 <div className="bg-gradient-to-r from-green-600 to-green-800 rounded-lg shadow-lg p-6 mb-8 text-white">
                     <h2 className="text-2xl font-bold mb-2">Welcome, {user?.name}!</h2>
@@ -131,6 +243,80 @@ const DistrictAdminDashboard: React.FC = () => {
                     <p className="text-sm text-green-200 mt-2">
                         Managing {stats?.overview.totalApplications || 0} total applications
                     </p>
+                </div>
+
+                {/* Quick Navigation */}
+                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                    <a
+                        href="/district-admin/cadets"
+                        className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer group"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-800 group-hover:text-green-600 transition">
+                                    Cadet Applications
+                                </h3>
+                                <p className="text-gray-600 text-sm mt-1">
+                                    View and manage cadet registrations for your district
+                                </p>
+                                <p className="text-2xl font-bold text-green-600 mt-3">
+                                    {stats?.overview.totalCadets || 0} entries
+                                </p>
+                            </div>
+                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                                🥋
+                            </div>
+                        </div>
+                    </a>
+
+                    <a
+                        href="/district-admin/poomsae"
+                        className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer group"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-800 group-hover:text-orange-600 transition">
+                                    Poomsae Applications
+                                </h3>
+                                <p className="text-gray-600 text-sm mt-1">
+                                    View and manage poomsae registrations for your district
+                                </p>
+                                <p className="text-2xl font-bold text-orange-600 mt-3">
+                                    {stats?.overview.totalPoomsae || 0} entries
+                                </p>
+                            </div>
+                            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                                🏆
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                {/* Export Buttons */}
+                <div className="bg-white p-6 rounded-lg shadow mb-8">
+                    <h2 className="text-lg font-bold text-gray-800 mb-4">Export Applications</h2>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={handleExportCadets}
+                            disabled={exportLoading}
+                            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            {exportLoading ? 'Exporting...' : 'Export Cadet Applications'}
+                        </button>
+                        <button
+                            onClick={handleExportPoomsae}
+                            disabled={exportLoading}
+                            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            {exportLoading ? 'Exporting...' : 'Export Poomsae Applications'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats Overview */}
@@ -335,6 +521,13 @@ const DistrictAdminDashboard: React.FC = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Change Password Modal */}
+            <ChangePasswordModal
+                isOpen={showChangePassword}
+                onClose={() => setShowChangePassword(false)}
+                onSuccess={handlePasswordChangeSuccess}
+            />
         </div>
     );
 };

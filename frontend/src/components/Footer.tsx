@@ -53,7 +53,7 @@ export const Footer: React.FC = () => {
             © 2025 A.P. Taekwondo Association.
           </div>
           <div>
-            Designed by <span className="text-primary">[Your Name / Team]</span>
+            Designed by <span className="text-primary">Bhargav Polamarasetti</span>
           </div>
         </div>
       </div>

@@ -8,6 +8,10 @@ import { ScrollToTopButton } from './src/components/ScrollToTopButton';
 
 // Public Pages
 import { HomePage } from './pages/HomePage';
+import { AboutTaekwondo } from './pages/AboutTaekwondo';
+import { ExecutiveMembers } from './pages/ExecutiveMembers';
+import { GalleryPage } from './pages/GalleryPage';
+import { ContactPage } from './pages/Contact';
 
 // Auth Pages
 import { Login } from './pages/LoginPage';
@@ -33,11 +37,14 @@ import StateAdminPoomsaeApplications from './pages/dashboards/StateAdminPoomsaeA
 // District Admin Dashboard Pages
 import DistrictAdminDashboard from './pages/dashboards/DistrictAdminDashboard';
 import DistrictAdminManagement from './pages/dashboards/DistrictAdminManagement';
+import DistrictAdminCadetApplications from './pages/dashboards/DistrictAdminCadetApplications';
+import DistrictAdminPoomsaeApplications from './pages/dashboards/DistrictAdminPoomsaeApplications';
 
 import TestPage from './pages/dashboards/TestPage';
 import CertificateGenerator from './pages/GenerateCertificate';
 import CertificateList from './src/components/Certificatelist';
 import DistrictCertificatesPage from './src/components/DistrictCertificatesPage';
+import CertificatesList from './pages/dashboards/CertificatesList';
 
 function App() {
   return (
@@ -47,6 +54,10 @@ function App() {
           {/* Public Routes */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutTaekwondo />} />
+            <Route path="/executive-members" element={<ExecutiveMembers />} />
+            <Route path="/gallery" element={<GalleryPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route path="/registration/cadet" element={<CadetEntryForm />} />
             <Route path="/registration/poomsae" element={<PoomsaeEntryForm />} />
             <Route path="/login" element={<Login />} />
@@ -63,6 +74,7 @@ function App() {
                     <Route path="users" element={<UserManagement />} />
                     <Route path="applications/cadet" element={<CadetApplications />} />
                     <Route path="applications/poomsae" element={<PoomsaeApplications />} />
+                    <Route path="certificates" element={<CertificatesList />} />
                     <Route path="certificates/generate" element={<GenerateCertificate />} />
                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                   </Routes>
@@ -85,6 +97,7 @@ function App() {
                     <Route path="applications/cadet" element={<StateAdminCadetApplications />} />
                     <Route path="applications/poomsae" element={<StateAdminPoomsaeApplications />} />
                     <Route path="district-admins" element={<DistrictAdminManagement />} />
+                    <Route path="certificates" element={<CertificatesList />} />
                     <Route
                       path="certificates/generate"
                       element={<CertificateGenerator />}
@@ -105,6 +118,8 @@ function App() {
                 <DashboardLayout>
                   <Routes>
                     <Route path="dashboard" element={<DistrictAdminDashboard />} />
+                    <Route path="cadets" element={<DistrictAdminCadetApplications />} />
+                    <Route path="poomsae" element={<DistrictAdminPoomsaeApplications />} />
                     <Route path="/district-admin/certificates" element={<DistrictCertificatesPage />} />
                     <Route path="applications/cadet" element={<CadetApplications />} />
                     <Route path="applications/poomsae" element={<PoomsaeApplications />} />
@@ -120,6 +135,7 @@ function App() {
           {/* Catch all - Redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <ScrollToTopButton />
       </AuthProvider>
     </Router>
   );

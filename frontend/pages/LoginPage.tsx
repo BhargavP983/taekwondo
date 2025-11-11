@@ -124,11 +124,11 @@ export const Login: React.FC = () => {
         </div>
 
         {/* Default Credentials Info */}
-        <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm">
+        {/* <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm">
           <p className="font-semibold text-yellow-800 mb-1">Default Credentials:</p>
           <p className="text-yellow-700">Email: admin@aptaekwondo.com</p>
           <p className="text-yellow-700">Password: admin123</p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

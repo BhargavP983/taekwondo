@@ -202,11 +202,31 @@ export const getAllCadetEntries = async (
     const limit = Math.min(parseInt(req.query.limit || '10', 10), 100);
     const skip = (page - 1) * limit;
 
-  // Filters
-  const filter: Record<string, any> = {};
-  if (req.query.district) filter.district = req.query.district;
-  if (req.query.state) filter.state = req.query.state;
-  if (req.query.gender) filter.gender = req.query.gender;
+    // Filters based on user role
+    const filter: Record<string, any> = {};
+    
+    // District admins can ONLY see their own district
+    if (req.user?.role === 'districtAdmin') {
+      if (!req.user.district) {
+        throw new ValidationError('District information not found for district admin');
+      }
+      filter.district = req.user.district;
+    }
+    // State admins can ONLY see their own state
+    else if (req.user?.role === 'stateAdmin') {
+      if (!req.user.state) {
+        throw new ValidationError('State information not found for state admin');
+      }
+      filter.state = req.user.state;
+    }
+    // Super admins can apply query filters
+    else if (req.user?.role === 'superAdmin') {
+      if (req.query.district) filter.district = req.query.district;
+      if (req.query.state) filter.state = req.query.state;
+    }
+
+    // Common filters for all roles
+    if (req.query.gender) filter.gender = req.query.gender;
 
     // Execute query with pagination
     const [cadets, total] = await Promise.all([
@@ -241,10 +261,29 @@ export const getCadetByEntryId = async (
 ) => {
   try {
     const { entryId } = req.params;
-    const cadet = await Cadet.findOne({ entryId });
+    
+    // Build filter based on user role
+    const filter: Record<string, any> = { entryId };
+    
+    // District admins can ONLY see their own district
+    if (req.user?.role === 'districtAdmin') {
+      if (!req.user.district) {
+        throw new ValidationError('District information not found for district admin');
+      }
+      filter.district = req.user.district;
+    }
+    // State admins can ONLY see their own state
+    else if (req.user?.role === 'stateAdmin') {
+      if (!req.user.state) {
+        throw new ValidationError('State information not found for state admin');
+      }
+      filter.state = req.user.state;
+    }
+
+    const cadet = await Cadet.findOne(filter);
 
     if (!cadet) {
-      throw new NotFoundError('Cadet entry not found');
+      throw new NotFoundError('Cadet entry not found or access denied');
     }
 
     res.status(200).json({
@@ -264,10 +303,29 @@ export const deleteCadetEntry = async (
 ) => {
   try {
     const { entryId } = req.params;
-    const cadet = await Cadet.findOneAndDelete({ entryId });
+    
+    // Build filter based on user role
+    const filter: Record<string, any> = { entryId };
+    
+    // District admins can ONLY delete their own district's entries
+    if (req.user?.role === 'districtAdmin') {
+      if (!req.user.district) {
+        throw new ValidationError('District information not found for district admin');
+      }
+      filter.district = req.user.district;
+    }
+    // State admins can ONLY delete their own state's entries
+    else if (req.user?.role === 'stateAdmin') {
+      if (!req.user.state) {
+        throw new ValidationError('State information not found for state admin');
+      }
+      filter.state = req.user.state;
+    }
+
+    const cadet = await Cadet.findOneAndDelete(filter);
 
     if (!cadet) {
-      throw new NotFoundError('Cadet entry not found');
+      throw new NotFoundError('Cadet entry not found or access denied');
     }
 
     res.status(200).json({
@@ -294,21 +352,41 @@ interface CadetStats {
 }
 
 export const getCadetStats = async (
-  req: Request,
+  req: AuthRequest,
   res: Response<ApiResponse<CadetStats>>,
   next: NextFunction
 ) => {
   try {
+    // Build filter based on user role
+    const filter: Record<string, any> = {};
+    
+    // District admins can ONLY see their own district stats
+    if (req.user?.role === 'districtAdmin') {
+      if (!req.user.district) {
+        throw new ValidationError('District information not found for district admin');
+      }
+      filter.district = req.user.district;
+    }
+    // State admins can ONLY see their own state stats
+    else if (req.user?.role === 'stateAdmin') {
+      if (!req.user.state) {
+        throw new ValidationError('State information not found for state admin');
+      }
+      filter.state = req.user.state;
+    }
+
     const [totalEntries, byGender, byDistrict, recentEntries] = await Promise.all([
-      Cadet.countDocuments(),
+      Cadet.countDocuments(filter),
       Cadet.aggregate([
+        { $match: filter },
         { $group: { _id: '$gender', count: { $sum: 1 } } }
       ]),
       Cadet.aggregate([
+        { $match: filter },
         { $group: { _id: '$district', count: { $sum: 1 } } },
         { $sort: { count: -1 } }
       ]),
-      Cadet.find()
+      Cadet.find(filter)
         .sort({ createdAt: -1 })
         .limit(5)
         .select('entryId name state createdAt')
@@ -374,6 +452,53 @@ export const getCadetsForDistrictAdmin = async (
         page,
         pageSize: limit,
         totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getDistrictCadetStats = async (
+  req: AuthRequest,
+  res: Response<ApiResponse<CadetStats>>,
+  next: NextFunction
+) => {
+  try {
+    const userDistrict = req.user?.district;
+    if (!userDistrict) {
+      throw new ValidationError('District information not found');
+    }
+
+    const filter = { district: userDistrict };
+
+    const [totalEntries, byGender, recentEntries] = await Promise.all([
+      Cadet.countDocuments(filter),
+      Cadet.aggregate([
+        { $match: filter },
+        { $group: { _id: '$gender', count: { $sum: 1 } } }
+      ]),
+      Cadet.find(filter)
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('entryId name state createdAt')
+        .lean()
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: 'District statistics retrieved successfully',
+      data: {
+        totalEntries,
+        byGender,
+        byDistrict: [{ _id: userDistrict, count: totalEntries }],
+        recentEntries: recentEntries.map(entry => ({
+          id: entry._id.toString(),
+          entryId: entry.entryId,
+          name: entry.name,
+          state: entry.state,
+          createdAt: entry.createdAt || new Date()
+        }))
       }
     });
   } catch (error) {

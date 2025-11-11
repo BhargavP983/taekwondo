@@ -1,5 +1,7 @@
 import React, { useState, useEffect, FormEvent } from 'react';
-import { usersAPI } from '../../services/api';
+import { usersAPI, authAPI } from '../../services/api';
+import { AP_DISTRICTS } from '../../src/constants/districts';
+import { useAuth } from '../../src/contexts/AuthContext';
 
 interface User {
   _id: string;
@@ -19,6 +21,7 @@ interface EditUserModalProps {
 }
 
 const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, onSuccess }) => {
+  const { user: currentUser } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -29,6 +32,28 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [resetPasswordError, setResetPasswordError] = useState('');
+
+  // Check if current user can reset password for this user
+  const canResetPassword = () => {
+    if (!user || !currentUser) return false;
+    
+    // SuperAdmin can reset for StateAdmin and DistrictAdmin
+    if (currentUser.role === 'superAdmin' && ['stateAdmin', 'districtAdmin'].includes(user.role)) {
+      return true;
+    }
+    
+    // StateAdmin can reset for DistrictAdmin in their state
+    if (currentUser.role === 'stateAdmin' && user.role === 'districtAdmin' && user.state === currentUser.state) {
+      return true;
+    }
+    
+    return false;
+  };
 
   useEffect(() => {
     if (user) {
@@ -40,6 +65,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
         district: user.district || '',
         isActive: user.isActive
       });
+      setShowResetPassword(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      setResetPasswordError('');
     }
   }, [user]);
 
@@ -75,6 +104,43 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
       setError(err.message || 'Failed to update user');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!user) return;
+    
+    setResetPasswordError('');
+    
+    // Validation
+    if (!newPassword || !confirmPassword) {
+      setResetPasswordError('Please enter both password fields');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setResetPasswordError('Password must be at least 6 characters long');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setResetPasswordError('Passwords do not match');
+      return;
+    }
+    
+    setResetPasswordLoading(true);
+    
+    try {
+      await authAPI.adminResetPassword(user._id, newPassword);
+      alert(`Password reset successfully for ${user.name}`);
+      setShowResetPassword(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      setResetPasswordError('');
+    } catch (err: any) {
+      setResetPasswordError(err.message || 'Failed to reset password');
+    } finally {
+      setResetPasswordLoading(false);
     }
   };
 
@@ -194,17 +260,94 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   District
                 </label>
-                <input
-                  type="text"
+                <select
                   name="district"
                   value={formData.district}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  placeholder="Enter district name"
-                />
+                >
+                  <option value="">Select District</option>
+                  {AP_DISTRICTS.map((district) => (
+                    <option key={district} value={district}>
+                      {district}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
           </div>
+
+          {/* Reset Password Section */}
+          {canResetPassword() && (
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-800">Reset User Password</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowResetPassword(!showResetPassword);
+                    setResetPasswordError('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }}
+                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                >
+                  {showResetPassword ? 'Cancel' : 'Reset Password'}
+                </button>
+              </div>
+
+              {showResetPassword && (
+                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                  {resetPasswordError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded text-sm">
+                      {resetPasswordError}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      New Password *
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      placeholder="Enter new password (min 6 characters)"
+                      disabled={resetPasswordLoading}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirm Password *
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      placeholder="Confirm new password"
+                      disabled={resetPasswordLoading}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleResetPassword}
+                    disabled={resetPasswordLoading}
+                    className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  >
+                    {resetPasswordLoading ? 'Resetting...' : 'Reset Password Now'}
+                  </button>
+                  
+                  <p className="text-xs text-gray-600 text-center">
+                    This will immediately change the user's password
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button

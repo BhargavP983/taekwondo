@@ -85,8 +85,9 @@ api.interceptors.response.use(
 
 export interface CertificateRequest {
   name: string;
-  date: string;
-  grade: string;
+  dateOfBirth: string;
+  medal: string;
+  category: string;
 }
 
 export interface CertificateResponse {
@@ -96,8 +97,9 @@ export interface CertificateResponse {
     _id?: string;
     serial: string;
     name: string;
-    date: string;
-    grade: string;
+    dateOfBirth: string;
+    medal: string;
+    category: string;
     generatedBy?: string;
     filePath: string; // relative path like /uploads/certificate/...
     previewUrl?: string; // absolute URL added by controller for convenience
@@ -146,12 +148,16 @@ export const certificateApi = {
   },
 
   list: async () => {
-    const response = await api.get('/certificates');
+    const response = await api.get('/certificates', {
+      headers: getAuthHeaders()
+    });
     return response.data;
   },
 
   delete: async (fileName: string) => {
-    const response = await api.delete(`/certificates/${fileName}`);
+    const response = await api.delete(`/certificates/${fileName}`, {
+      headers: getAuthHeaders()
+    });
     return response.data;
   },
 
@@ -162,6 +168,88 @@ export const certificateApi = {
       return data; // { success: boolean, data: Certificate[] }
     } catch (err) {
       return { success: false, data: [], message: 'Could not fetch certificates' };
+    }
+  },
+
+  downloadTemplate: async () => {
+    try {
+      console.log('📥 Downloading certificate template...');
+      const response = await api.get('/certificates/template/download', {
+        headers: getAuthHeaders(),
+        responseType: 'blob'
+      });
+
+      // Extract filename from Content-Disposition header
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `certificate_template_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+          filename = decodeURIComponent(filename);
+        }
+      }
+
+      // Create blob and download
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log('✅ Template downloaded:', filename);
+    } catch (error: any) {
+      console.error('❌ Failed to download template:', error);
+      if (error.code === 'ERR_NETWORK') {
+        throw new Error('Cannot connect to server. Is the backend running?');
+      }
+      throw new Error(error.response?.data?.message || 'Failed to download template');
+    }
+  },
+
+  bulkGenerate: async (file: File): Promise<{
+    success: boolean;
+    message: string;
+    data?: {
+      total: number;
+      successful: number;
+      failed: number;
+      results: Array<{ success: boolean; serial?: string; name: string; error?: string }>;
+    };
+  }> => {
+    try {
+      console.log('📤 Uploading file for bulk certificate generation...');
+      
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      
+      const response = await api.post('/certificates/bulk-generate', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
+
+      console.log('✅ Bulk generation completed:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Bulk generation failed:', error);
+      if (error.code === 'ERR_NETWORK') {
+        throw new Error('Cannot connect to server. Is the backend running?');
+      }
+      if (error.response) {
+        throw new Error(error.response.data.message || 'Failed to generate certificates');
+      }
+      throw new Error(error.message || 'Unknown error occurred');
     }
   }
 };
@@ -248,6 +336,32 @@ export const authAPI = {
     } catch (error: any) {
       console.error('Toggle user status API error:', error);
       throw new Error(error.response?.data?.message || 'Failed to toggle user status');
+    }
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.post('/auth/change-password', 
+        { currentPassword, newPassword },
+        { headers: getAuthHeaders() }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Change password API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to change password');
+    }
+  },
+
+  adminResetPassword: async (userId: string, newPassword: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.post(`/auth/admin-reset-password/${userId}`, 
+        { newPassword },
+        { headers: getAuthHeaders() }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Admin reset password API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to reset password');
     }
   }
 };
@@ -533,6 +647,19 @@ export const districtAdminAPI = {
       throw new Error(error.response?.data?.message || 'Failed to fetch district cadets');
     }
   },
+  getPoomsae: async (page = 1, limit = 10) => {
+    try {
+      const userDistrict = localStorage.getItem('userDistrict');
+      const response = await api.get('/poomsae/district', {
+        params: { page, limit, district: userDistrict || undefined },
+        headers: getAuthHeaders()
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('District Admin getPoomsae API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch district poomsae');
+    }
+  },
   getStats: async () => {
     try {
       const response = await api.get('/cadets/district/stats', { headers: getAuthHeaders() });
@@ -540,6 +667,15 @@ export const districtAdminAPI = {
     } catch (error: any) {
       console.error('District Admin stats API error:', error);
       throw new Error(error.response?.data?.message || 'Failed to fetch district stats');
+    }
+  },
+  getPoomsaeStats: async () => {
+    try {
+      const response = await api.get('/poomsae/district/stats', { headers: getAuthHeaders() });
+      return response.data;
+    } catch (error: any) {
+      console.error('District Admin poomsae stats API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch district poomsae stats');
     }
   },
   getAllByDistrict: async (district, page = 1, limit = 10) => {
@@ -556,3 +692,100 @@ export const districtAdminAPI = {
   },
   // ...other district admin endpoints
 };
+
+// Export API
+export const exportAPI = {
+  exportCadets: async () => {
+    try {
+      const response = await api.get('/export/cadets', {
+        headers: getAuthHeaders(),
+        responseType: 'blob'
+      });
+      
+      // Extract filename from Content-Disposition header
+      let filename = `Cadet_Applications_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const contentDisposition = response.headers['content-disposition'];
+      
+      console.log('Content-Disposition header:', contentDisposition);
+      
+      if (contentDisposition) {
+        // Try to extract filename* first (RFC 6266)
+        const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''(.+?)(?:;|$)/);
+        if (filenameStarMatch && filenameStarMatch[1]) {
+          filename = decodeURIComponent(filenameStarMatch[1]);
+          console.log('Extracted filename from filename*:', filename);
+        } else {
+          // Fallback to regular filename
+          const filenameMatch = contentDisposition.match(/filename="?([^";\n]+)"?/);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = decodeURIComponent(filenameMatch[1]);
+            console.log('Extracted filename from filename:', filename);
+          }
+        }
+      }
+      
+      console.log('Final filename:', filename);
+      
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Export cadets API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to export cadet applications');
+    }
+  },
+  exportPoomsae: async () => {
+    try {
+      const response = await api.get('/export/poomsae', {
+        headers: getAuthHeaders(),
+        responseType: 'blob'
+      });
+      
+      // Extract filename from Content-Disposition header
+      let filename = `Poomsae_Applications_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const contentDisposition = response.headers['content-disposition'];
+      
+      console.log('Content-Disposition header:', contentDisposition);
+      
+      if (contentDisposition) {
+        // Try to extract filename* first (RFC 6266)
+        const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''(.+?)(?:;|$)/);
+        if (filenameStarMatch && filenameStarMatch[1]) {
+          filename = decodeURIComponent(filenameStarMatch[1]);
+          console.log('Extracted filename from filename*:', filename);
+        } else {
+          // Fallback to regular filename
+          const filenameMatch = contentDisposition.match(/filename="?([^";\n]+)"?/);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = decodeURIComponent(filenameMatch[1]);
+            console.log('Extracted filename from filename:', filename);
+          }
+        }
+      }
+      
+      console.log('Final filename:', filename);
+      
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Export poomsae API error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to export poomsae applications');
+    }
+  }
+};
+

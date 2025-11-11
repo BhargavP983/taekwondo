@@ -4,9 +4,12 @@ import {
   getAllPoomsaeEntries,
   getPoomsaeEntryById,
   deletePoomsaeEntry,
-  getPoomsaeStats
+  getPoomsaeStats,
+  getPoomsaeForDistrictAdmin,
+  getDistrictPoomsaeStats
 } from '../controllers/poomsaeController';
-import { authenticateToken } from '../middleware/authMiddleware';
+import { authenticateToken, requireRole } from '../middleware/authMiddleware';
+import { asHandler } from '../types/handlers';
 
 const router = Router();
 
@@ -14,9 +17,22 @@ const router = Router();
 router.post('/', createPoomsaeEntry);
 
 // Protected routes
-router.get('/', authenticateToken(), getAllPoomsaeEntries);
-router.get('/stats', authenticateToken(), getPoomsaeStats);
-router.get('/:entryId', authenticateToken(), getPoomsaeEntryById);
-router.delete('/:entryId', authenticateToken(), deletePoomsaeEntry);
+router.get('/', authenticateToken(), asHandler(getAllPoomsaeEntries as any));
+// District admin scoped listing
+router.get(
+  '/district',
+  authenticateToken(),
+  requireRole('districtAdmin', 'superAdmin', 'district_admin', 'super_admin'),
+  asHandler(getPoomsaeForDistrictAdmin as any)
+);
+router.get(
+  '/district/stats',
+  authenticateToken(),
+  requireRole('districtAdmin', 'superAdmin', 'district_admin', 'super_admin'),
+  asHandler(getDistrictPoomsaeStats as any)
+);
+router.get('/stats', authenticateToken(), asHandler(getPoomsaeStats as any));
+router.get('/:entryId', authenticateToken(), asHandler(getPoomsaeEntryById as any));
+router.delete('/:entryId', authenticateToken(), asHandler(deletePoomsaeEntry as any));
 
 export default router;

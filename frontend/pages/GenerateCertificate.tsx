@@ -4,8 +4,9 @@ import { certificateApi } from '../services/api';
 export default function CertificateGenerator() {
   const [formData, setFormData] = useState({
     name: '',
-    date: '',
-    grade: ''
+    dateOfBirth: '',
+    medal: '',
+    category: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -50,7 +51,7 @@ export default function CertificateGenerator() {
   };
 
   const handleNewCertificate = () => {
-    setFormData({ name: '', date: '', grade: '' });
+    setFormData({ name: '', dateOfBirth: '', medal: '', category: '' });
     setError('');
     setCertificate(null);
   };
@@ -80,30 +81,39 @@ export default function CertificateGenerator() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Date</label>
+                <label className="block text-sm font-medium mb-2">Date of Birth</label>
                 <input
                   type="date"
-                  value={formData.date}
-                  onChange={e => setFormData({ ...formData, date: e.target.value })}
+                  value={formData.dateOfBirth}
+                  onChange={e => setFormData({ ...formData, dateOfBirth: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Grade</label>
+                <label className="block text-sm font-medium mb-2">Medal</label>
                 <select
-                  value={formData.grade}
-                  onChange={e => setFormData({ ...formData, grade: e.target.value })}
+                  value={formData.medal}
+                  onChange={e => setFormData({ ...formData, medal: e.target.value })}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
                   required
                 >
-                  <option value="">Select Grade</option>
-                  <option value="A+">A+</option>
-                  <option value="A">A</option>
-                  <option value="B+">B+</option>
-                  <option value="B">B</option>
-                  <option value="C">C</option>
+                  <option value="">Select Medal</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Bronze">Bronze</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Category</label>
+                <input
+                  type="text"
+                  value={formData.category}
+                  onChange={e => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  placeholder="Enter category (e.g., Junior Male, Senior Female)"
+                  required
+                />
               </div>
               <button
                 type="submit"

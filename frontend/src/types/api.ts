@@ -65,6 +65,7 @@ export interface Poomsae {
   nameOfCollege?: string;
   nameOfBoardUniversity?: string;
   formFileName?: string;
+  formDownloadUrl?: string;
   createdAt: string;
 }
 

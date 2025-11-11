@@ -6,7 +6,16 @@ const connectDB = async () => {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ap-taekwondo';
     
-    await mongoose.connect(mongoURI);
+    // Configure mongoose with optimized settings
+    mongoose.set('strictQuery', false);
+    
+    await mongoose.connect(mongoURI, {
+      maxPoolSize: 10,        // Maximum number of connections in the pool
+      minPoolSize: 2,         // Minimum number of connections
+      serverSelectionTimeoutMS: 5000,  // Timeout for selecting a server
+      socketTimeoutMS: 45000,  // Close sockets after 45 seconds of inactivity
+      family: 4,              // Use IPv4, skip trying IPv6
+    });
     
     console.log('✅ MongoDB Connected Successfully');
     console.log(`📊 Database: ${mongoose.connection.name}`);
@@ -28,12 +37,18 @@ const connectDB = async () => {
     });
     
     mongoose.connection.on('disconnected', () => {
-      console.log('⚠️ MongoDB disconnected');
+      console.log('⚠️ MongoDB disconnected - attempting to reconnect...');
+      setTimeout(connectDB, 5000); // Attempt to reconnect after 5 seconds
+    });
+    
+    mongoose.connection.on('reconnected', () => {
+      console.log('✅ MongoDB reconnected successfully');
     });
     
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error);
-    process.exit(1); // Exit process with failure
+    console.log('🔄 Retrying connection in 5 seconds...');
+    setTimeout(connectDB, 5000); // Retry connection instead of exiting
   }
 };
 

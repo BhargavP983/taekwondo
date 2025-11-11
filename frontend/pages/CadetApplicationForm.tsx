@@ -1,6 +1,8 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { API_BASE_URL, cadetsAPI } from '../services/api';
 import Toast from '../src/components/Toast';
+import { INDIAN_STATES } from '../src/constants/states';
+import { AP_DISTRICTS } from '../src/constants/districts';
 
 interface CadetFormData {
   gender: 'Boy' | 'Girl' | '';
@@ -362,35 +364,11 @@ function CadetEntryForm() {
                 required
               >
                 <option value="">Select State</option>
-                <option value="Karnataka">Karnataka</option>
-                <option value="Tamil Nadu">Tamil Nadu</option>
-                <option value="Kerala">Kerala</option>
-                <option value="Telangana">Telangana</option>
-                <option value="Maharashtra">Maharashtra</option>
-                <option value="Andhra Pradesh">Andhra Pradesh</option>
-                <option value="Telangana">Telangana</option>
-                <option value="Uttar Pradesh">Uttar Pradesh</option>
-                <option value="West Bengal">West Bengal</option>
-                <option value="Odisha">Odisha</option>
-                <option value="Bihar">Bihar</option>
-                <option value="Gujarat">Gujarat</option>
-                <option value="Rajasthan">Rajasthan</option>
-                <option value="Punjab">Punjab</option>
-                <option value="Haryana">Haryana</option>
-                <option value="Madhya Pradesh">Madhya Pradesh</option>
-                <option value="Chhattisgarh">Chhattisgarh</option>
-                <option value="Jharkhand">Jharkhand</option>
-                <option value="Assam">Assam</option>
-                <option value="North East">North East</option>
-                <option value="Sikkim">Sikkim</option>
-                <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
-                <option value="Lakshadweep">Lakshadweep</option>
-                <option value="Delhi">Delhi</option>
-                <option value="Chandigarh">Chandigarh</option>
-                <option value="Jammu and Kashmir">Jammu and Kashmir</option>
-                <option value="Uttarakhand">Uttarakhand</option>
-                <option value="Ladakh">Ladakh</option>
-                {/* Add more states */}
+                {INDIAN_STATES.map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -405,20 +383,11 @@ function CadetEntryForm() {
                 required
               >
                 <option value="">Select District</option>
-                <option value="Anantapur">Anantapur</option>
-                <option value="Chittoor">Chittoor</option>
-                <option value="East Godavari">East Godavari</option>
-                <option value="Guntur">Guntur</option>
-                <option value="Krishna">Krishna</option>
-                <option value="Kurnool">Kurnool</option>
-                <option value="Nellore">Nellore</option>
-                <option value="Prakasam">Prakasam</option>
-                <option value="Srikakulam">Srikakulam</option>
-                <option value="Visakhapatnam">Visakhapatnam</option>
-                <option value="Vizianagaram">Vizianagaram</option>
-                <option value="West Godavari">West Godavari</option>
-                <option value="YSR Kadapa">YSR Kadapa</option>
-                {/* Add more states */}
+                {AP_DISTRICTS.map((district) => (
+                  <option key={district} value={district}>
+                    {district}
+                  </option>
+                ))}
               </select>
           </div>
 

@@ -4,31 +4,60 @@ import { BACKEND_URL } from '../../services/api';
 const HealthBadge: React.FC = () => {
   const [status, setStatus] = useState<'ok' | 'fail' | 'loading'>('loading');
   const [message, setMessage] = useState<string>('');
+  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
 
   useEffect(() => {
     let mounted = true;
+    
     const ping = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/health`, { cache: 'no-store' });
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const res = await fetch(`${BACKEND_URL}/health`, { 
+          cache: 'no-store',
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
         const json = await res.json();
         if (!mounted) return;
+        
         if (res.ok && json?.status === 'OK') {
           setStatus('ok');
           setMessage('API healthy');
+          setConsecutiveFailures(0); // Reset failure count on success
         } else {
-          setStatus('fail');
-          setMessage(json?.message || 'Unhealthy');
+          setConsecutiveFailures(prev => prev + 1);
+          // Only mark as failed after 2 consecutive failures to avoid false positives
+          if (consecutiveFailures >= 1) {
+            setStatus('fail');
+            setMessage(json?.message || 'Unhealthy');
+          }
         }
       } catch (e: any) {
         if (!mounted) return;
-        setStatus('fail');
-        setMessage(e?.message || 'No response');
+        
+        setConsecutiveFailures(prev => prev + 1);
+        
+        // Only mark as failed after 2 consecutive failures
+        if (consecutiveFailures >= 1) {
+          setStatus('fail');
+          if (e.name === 'AbortError') {
+            setMessage('Timeout');
+          } else {
+            setMessage(e?.message || 'No response');
+          }
+        }
       }
     };
+    
     ping();
-    const id = setInterval(ping, 15000);
+    const id = setInterval(ping, 10000); // Check every 10 seconds
     return () => { mounted = false; clearInterval(id); };
-  }, []);
+  }, [consecutiveFailures]);
 
   const color = status === 'ok' ? 'bg-green-100 text-green-700 border-green-300'
     : status === 'fail' ? 'bg-red-100 text-red-700 border-red-300'

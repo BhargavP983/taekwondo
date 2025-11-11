@@ -11,7 +11,9 @@ import {
   createDistrictAdmin,
   updateDistrictAdmin,
   deleteDistrictAdmin,
-  toggleDistrictAdmin
+  toggleDistrictAdmin,
+  changePassword,
+  adminResetPassword
 } from '../controllers/authController';
 import { authenticateToken, requireRole, authRateLimiter } from '../middleware/authMiddleware';
 import { validateRequest } from '../middleware/validationMiddleware';
@@ -97,6 +99,19 @@ router.patch('/district-admins/:userId/toggle-status',
   authenticateToken(),
   requireRole<UserParams>('stateAdmin', 'superAdmin'),
   asHandler(toggleDistrictAdmin)
+);
+
+// Change password for any authenticated user
+router.post('/change-password',
+  authenticateToken(),
+  asHandler(changePassword)
+);
+
+// Admin reset password for other users (SuperAdmin -> StateAdmin, StateAdmin -> DistrictAdmin)
+router.post('/admin-reset-password/:userId',
+  authenticateToken(),
+  requireRole<UserParams>('superAdmin', 'stateAdmin'),
+  asHandler(adminResetPassword)
 );
 
 export default router;

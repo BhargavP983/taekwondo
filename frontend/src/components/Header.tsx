@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import HealthBadge from './HealthBadge';
 import { Link, useLocation } from 'react-router-dom';
 
 interface HeaderProps {
@@ -68,7 +67,6 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                 <span className={`font-bold text-lg text-white ${isSticky ? 'text-lg' : 'text-xl'}`}>
                   AP Taekwondo
                 </span>
-                <div className="ml-4 hidden md:block"><HealthBadge /></div>
               </Link>
 
               <button
@@ -120,6 +118,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                         <Link
                           className="block px-4 py-2 hover:bg-gray-200 lg:hover:bg-primary lg:hover:text-white transition-colors duration-200"
                           to="/about"
+                          onClick={() => setIsAboutDropdownOpen(false)}
                         >
                           About Taekwondo
                         </Link>
@@ -128,6 +127,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                         <Link
                           className="block px-4 py-2 hover:bg-gray-200 lg:hover:bg-primary lg:hover:text-white transition-colors duration-200"
                           to="/executive-members"
+                          onClick={() => setIsAboutDropdownOpen(false)}
                         >
                           Executive Members
                         </Link>
@@ -169,6 +169,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                         <Link
                           className="block px-4 py-2 hover:bg-gray-200 lg:hover:bg-primary lg:hover:text-white transition-colors duration-200"
                           to="/gallery"
+                          onClick={() => setIsGalleryDropdownOpen(false)}
                         >
                           Photo Gallery
                         </Link>
@@ -177,6 +178,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                         <Link
                           className="block px-4 py-2 hover:bg-gray-200 lg:hover:bg-primary lg:hover:text-white transition-colors duration-200"
                           to="/gallery"
+                          onClick={() => setIsGalleryDropdownOpen(false)}
                         >
                           Video Gallery
                         </Link>
@@ -209,6 +211,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                         <Link
                           className="block px-4 py-2 hover:bg-gray-200 lg:hover:bg-primary lg:hover:text-white transition-colors duration-200"
                           to="/registration/cadet"
+                          onClick={() => setIsRegistrationDropdownOpen(false)}
                         >
                           Cadet Application
                         </Link>
@@ -217,6 +220,7 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                         <Link
                           className="block px-4 py-2 hover:bg-gray-200 lg:hover:bg-primary lg:hover:text-white transition-colors duration-200"
                           to="/registration/poomsae"
+                          onClick={() => setIsRegistrationDropdownOpen(false)}
                         >
                           Poomsae Application
                         </Link>
@@ -243,8 +247,6 @@ export const Header: React.FC<HeaderProps> = ({ isSticky }) => {
                   </Link>
                 </li>
               </ul>
-              {/* Mobile health badge */}
-              <div className="mt-4 md:hidden"><HealthBadge /></div>
             </div>
           </div>
         </nav>

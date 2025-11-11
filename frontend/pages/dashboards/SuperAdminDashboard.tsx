@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { dashboardAPI } from '../../services/api';
+import { dashboardAPI, exportAPI, certificateApi } from '../../services/api';
+import ChangePasswordModal from './ChangePasswordModal';
 
 interface DashboardStats {
   totalUsers: number;
@@ -45,6 +46,17 @@ const SuperAdminDashboard: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [exportLoading, setExportLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResults, setBulkResults] = useState<{
+    total: number;
+    successful: number;
+    failed: number;
+    results: Array<{ success: boolean; serial?: string; name: string; error?: string }>;
+  } | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -69,6 +81,80 @@ const SuperAdminDashboard: React.FC = () => {
       setError(err.message || 'Failed to load dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasswordChangeSuccess = () => {
+    setSuccessMessage('Password changed successfully!');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
+  const handleExportCadets = async () => {
+    try {
+      setExportLoading(true);
+      await exportAPI.exportCadets();
+      setSuccessMessage('Cadet applications exported successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to export cadet applications');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleExportPoomsae = async () => {
+    try {
+      setExportLoading(true);
+      await exportAPI.exportPoomsae();
+      setSuccessMessage('Poomsae applications exported successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to export poomsae applications');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      await certificateApi.downloadTemplate();
+      setSuccessMessage('Certificate template downloaded successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to download template');
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+      setBulkResults(null);
+    }
+  };
+
+  const handleBulkGenerate = async () => {
+    if (!selectedFile) {
+      setError('Please select a file first');
+      return;
+    }
+
+    try {
+      setBulkLoading(true);
+      setError('');
+      const response = await certificateApi.bulkGenerate(selectedFile);
+      
+      if (response.success && response.data) {
+        setBulkResults(response.data);
+        setSuccessMessage(response.message);
+        setSelectedFile(null);
+        // Reset file input
+        const fileInput = document.getElementById('bulk-file-input') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate certificates');
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -152,19 +238,175 @@ const SuperAdminDashboard: React.FC = () => {
               <p className="text-sm text-gray-600">{user?.email}</p>
             </div>
           </div>
-          <button
-            onClick={logout}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-semibold"
-          >
-            Logout
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition font-semibold flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              Change Password
+            </button>
+            <button
+              onClick={logout}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-semibold"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
+      {/* Success Message */}
+      {successMessage && (
+        <div className="container mx-auto px-4 pt-4">
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{successMessage}</span>
+            </div>
+            <button onClick={() => setSuccessMessage('')} className="text-green-700 hover:text-green-900">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Export Buttons */}
+        <div className="bg-white p-6 rounded-lg shadow mb-8">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Export Applications</h2>
+          <div className="flex gap-4">
+            <button
+              onClick={handleExportCadets}
+              disabled={exportLoading}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              {exportLoading ? 'Exporting...' : 'Export Cadet Applications'}
+            </button>
+            <button
+              onClick={handleExportPoomsae}
+              disabled={exportLoading}
+              className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              {exportLoading ? 'Exporting...' : 'Export Poomsae Applications'}
+            </button>
+          </div>
+        </div>
+
+        {/* Bulk Certificate Generation */}
+        <div className="bg-white p-6 rounded-lg shadow mb-8">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Bulk Certificate Generation</h2>
+          
+          <div className="mb-6">
+            <button
+              onClick={handleDownloadTemplate}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download Certificate Template
+            </button>
+            <p className="text-sm text-gray-600 mt-2">
+              Download the Excel template, fill in participant details, and upload it to generate certificates in bulk.
+            </p>
+          </div>
+
+          <div className="border-t pt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload Filled Template
+            </label>
+            <div className="flex items-center gap-4">
+              <input
+                id="bulk-file-input"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              <button
+                onClick={handleBulkGenerate}
+                disabled={!selectedFile || bulkLoading}
+                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {bulkLoading ? 'Generating...' : 'Generate Certificates'}
+              </button>
+            </div>
+            {selectedFile && (
+              <p className="text-sm text-gray-600 mt-2">
+                Selected: {selectedFile.name}
+              </p>
+            )}
+          </div>
+
+          {/* Results Display */}
+          {bulkResults && (
+            <div className="mt-6 border-t pt-6">
+              <h3 className="text-md font-semibold text-gray-800 mb-4">Generation Results</h3>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">Total</p>
+                  <p className="text-2xl font-bold text-blue-600">{bulkResults.total}</p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">Successful</p>
+                  <p className="text-2xl font-bold text-green-600">{bulkResults.successful}</p>
+                </div>
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">Failed</p>
+                  <p className="text-2xl font-bold text-red-600">{bulkResults.failed}</p>
+                </div>
+              </div>
+
+              {bulkResults.results.length > 0 && (
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial / Error</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {bulkResults.results.map((result, index) => (
+                        <tr key={index} className={result.success ? 'bg-green-50' : 'bg-red-50'}>
+                          <td className="px-4 py-3 text-sm text-gray-900">{result.name}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {result.success ? (
+                              <span className="text-green-600 font-semibold">✓ Success</span>
+                            ) : (
+                              <span className="text-red-600 font-semibold">✗ Failed</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700">
+                            {result.success ? result.serial : result.error}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Stats Overview */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {/* Total Users */}
           <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
             <div className="flex items-center justify-between">
@@ -206,40 +448,66 @@ const SuperAdminDashboard: React.FC = () => {
           </div>
 
           {/* Cadet Applications */}
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Cadet Applications</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">
-                  {stats?.totalCadets || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  +{stats?.recentCadets || 0} this week
-                </p>
-              </div>
-              <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center text-2xl">
-                🥋
+          <Link to="/admin/applications/cadet" className="block">
+            <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm font-medium">Cadet Applications</p>
+                  <p className="text-3xl font-bold text-green-600 mt-2">
+                    {stats?.totalCadets || 0}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    +{stats?.recentCadets || 0} this week
+                  </p>
+                </div>
+                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center text-2xl">
+                  🥋
+                </div>
               </div>
             </div>
-          </div>
+          </Link>
 
           {/* Poomsae Applications */}
-          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Poomsae Applications</p>
-                <p className="text-3xl font-bold text-orange-600 mt-2">
-                  {stats?.totalPoomsae || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  +{stats?.recentPoomsae || 0} this week
-                </p>
-              </div>
-              <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center text-2xl">
-                🏆
+          <Link to="/admin/applications/poomsae" className="block">
+            <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm font-medium">Poomsae Applications</p>
+                  <p className="text-3xl font-bold text-orange-600 mt-2">
+                    {stats?.totalPoomsae || 0}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    +{stats?.recentPoomsae || 0} this week
+                  </p>
+                </div>
+                <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center text-2xl">
+                  🏆
+                </div>
               </div>
             </div>
-          </div>
+          </Link>
+
+          {/* Certificates */}
+          <Link to="/admin/certificates" className="block">
+            <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-600 text-sm font-medium">Certificates</p>
+                  <p className="text-3xl font-bold text-indigo-600 mt-2">
+                    View All
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Manage certificates
+                  </p>
+                </div>
+                <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <svg className="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </Link>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
@@ -398,6 +666,13 @@ const SuperAdminDashboard: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+        onSuccess={handlePasswordChangeSuccess}
+      />
     </div>
   );
 };

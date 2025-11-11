@@ -1,6 +1,8 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import Toast from './Toast';
 import { poomsaeAPI } from '../../services/api';
+import { AP_DISTRICTS } from '../constants/districts';
+import { INDIAN_STATES } from '../constants/states';
 
 interface PoomsaeFormData {
   division: string;
@@ -303,12 +305,38 @@ function PoomsaeEntryForm() {
 
             <div>
               <label className="block text-sm font-medium mb-2">State / Orgn *</label>
-              <input type="text" name="stateOrg" value={formData.stateOrg} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+              <select 
+                name="stateOrg" 
+                value={formData.stateOrg} 
+                onChange={handleInputChange} 
+                className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                required
+              >
+                <option value="">Select State</option>
+                {INDIAN_STATES.map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">District *</label>
-              <input type="text" name="district" value={formData.district} onChange={handleInputChange} className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+              <select 
+                name="district" 
+                value={formData.district} 
+                onChange={handleInputChange} 
+                className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                required
+              >
+                <option value="">Select District</option>
+                {AP_DISTRICTS.map((district) => (
+                  <option key={district} value={district}>
+                    {district}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
