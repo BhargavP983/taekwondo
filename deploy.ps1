@@ -62,31 +62,31 @@ if ($SshKeyPath) {
 }
 $sshCommand += " $SshUser@$VpsIp"
 
-Write-Info "Testing SSH connection to $VpsIp..."
+Write-Host "Testing SSH connection to $VpsIp..." -ForegroundColor Cyan
 
 # Test SSH connection
 $testConnection = Invoke-Expression "$sshCommand 'echo Connection OK'" 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-ErrorMsg "Cannot connect to VPS via SSH"
-    Write-Info "Please ensure:"
-    Write-Info "  1. VPS IP address is correct"
-    Write-Info "  2. SSH key is configured (if using key authentication)"
-    Write-Info "  3. User '$SshUser' exists on the VPS"
+    Write-Host "Cannot connect to VPS via SSH" -ForegroundColor Red
+    Write-Host "Please ensure:" -ForegroundColor Cyan
+    Write-Host "  1. VPS IP address is correct" -ForegroundColor Cyan
+    Write-Host "  2. SSH key is configured (if using key authentication)" -ForegroundColor Cyan
+    Write-Host "  3. User '$SshUser' exists on the VPS" -ForegroundColor Cyan
     exit 1
 }
 
-Write-Success "SSH connection successful"
+Write-Host "SSH connection successful" -ForegroundColor Green
 
 # Upload deployment script
 Write-Header "STEP 1: Uploading Deployment Script"
 
 $scriptPath = Join-Path $PSScriptRoot "deploy.sh"
 if (-not (Test-Path $scriptPath)) {
-    Write-ErrorMsg "deploy.sh not found in current directory"
+    Write-Host "deploy.sh not found in current directory" -ForegroundColor Red
     exit 1
 }
 
-Write-Info "Uploading deploy.sh to VPS..."
+Write-Host "Uploading deploy.sh to VPS..." -ForegroundColor Cyan
 
 $scpCommand = "scp"
 if ($SshKeyPath) {
@@ -96,33 +96,33 @@ $scpCommand += " `"$scriptPath`" $SshUser@${VpsIp}:/tmp/deploy.sh"
 
 Invoke-Expression $scpCommand
 if ($LASTEXITCODE -ne 0) {
-    Write-ErrorMsg "Failed to upload deployment script"
+    Write-Host "Failed to upload deployment script" -ForegroundColor Red
     exit 1
 }
 
-Write-Success "Deployment script uploaded"
+Write-Host "Deployment script uploaded" -ForegroundColor Green
 
 # Make script executable and run it
 Write-Header "STEP 2: Running Deployment on VPS"
 
-Write-Warning "The deployment script will now run on your VPS."
-Write-Warning "You may be prompted for passwords and configuration details."
-Write-Info "Press Enter to continue or Ctrl+C to cancel..."
+Write-Host "The deployment script will now run on your VPS." -ForegroundColor Yellow
+Write-Host "You may be prompted for passwords and configuration details." -ForegroundColor Yellow
+Write-Host "Press Enter to continue or Ctrl+C to cancel..." -ForegroundColor Cyan
 Read-Host
 
 # Execute deployment script on VPS
 Invoke-Expression "$sshCommand 'chmod +x /tmp/deploy.sh && sudo /tmp/deploy.sh'"
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Success "Deployment completed successfully!"
-    Write-Info "`nYour application should now be running at:"
+    Write-Host "Deployment completed successfully!" -ForegroundColor Green
+    Write-Host "`nYour application should now be running at:" -ForegroundColor Cyan
     Write-Host "  Frontend: http://$VpsIp" -ForegroundColor Green
     Write-Host "  Backend API: http://$VpsIp:5000" -ForegroundColor Green
 } else {
-    Write-ErrorMsg "Deployment encountered errors. Please check the output above."
+    Write-Host "Deployment encountered errors. Please check the output above." -ForegroundColor Red
 }
 
-Write-Info "`nTo check application status, run:"
+Write-Host "`nTo check application status, run:" -ForegroundColor Cyan
 Write-Host "  ssh $SshUser@$VpsIp" -ForegroundColor Yellow
 Write-Host "  pm2 status" -ForegroundColor Yellow
 Write-Host "  pm2 logs taekwondo-backend" -ForegroundColor Yellow

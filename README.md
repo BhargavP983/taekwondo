@@ -9,7 +9,11 @@ A comprehensive full-stack application for managing Taekwondo cadet applications
 
 ### Production Deployment (Ubuntu VPS)
 
-**Automated deployment with one command:**
+**🚀 Quick Start - Copy & Paste Method:**
+
+See [SIMPLE_DEPLOYMENT_GUIDE.md](./SIMPLE_DEPLOYMENT_GUIDE.md) for step-by-step commands you can copy and paste directly into your VPS terminal.
+
+**Or use automated scripts:**
 ```powershell
 # Full deployment (fresh VPS)
 .\deploy.ps1

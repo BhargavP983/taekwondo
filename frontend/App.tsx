@@ -25,7 +25,7 @@ import SuperAdminDashboard from './pages/dashboards/SuperAdminDashboard';
 
 // Dashboard Page Components
 import UserManagement from './pages/dashboards/userManagement';
-import CadetApplications from './pages/dashboards/CadetApplications';
+import CadetApplicationsComponent from './pages/dashboards/CadetApplications';
 import PoomsaeApplications from './pages/dashboards/PoomsaeApplications';
 import GenerateCertificate from './pages/GenerateCertificate';
 
@@ -72,7 +72,7 @@ function App() {
                   <Routes>
                     <Route path="dashboard" element={<SuperAdminDashboard />} />
                     <Route path="users" element={<UserManagement />} />
-                    <Route path="applications/cadet" element={<CadetApplications />} />
+                    <Route path="applications/cadet" element={<CadetApplicationsComponent />} />
                     <Route path="applications/poomsae" element={<PoomsaeApplications />} />
                     <Route path="certificates" element={<CertificatesList />} />
                     <Route path="certificates/generate" element={<GenerateCertificate />} />
@@ -121,7 +121,7 @@ function App() {
                     <Route path="cadets" element={<DistrictAdminCadetApplications />} />
                     <Route path="poomsae" element={<DistrictAdminPoomsaeApplications />} />
                     <Route path="/district-admin/certificates" element={<DistrictCertificatesPage />} />
-                    <Route path="applications/cadet" element={<CadetApplications />} />
+                    <Route path="applications/cadet" element={<CadetApplicationsComponent />} />
                     <Route path="applications/poomsae" element={<PoomsaeApplications />} />
                     <Route path="manage" element={<DistrictAdminManagement />} />
                     <Route path="reports" element={<div>Reports</div>} />
