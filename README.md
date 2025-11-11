@@ -11,8 +11,11 @@ A comprehensive full-stack application for managing Taekwondo cadet applications
 
 **Automated deployment with one command:**
 ```powershell
-# From Windows
+# Full deployment (fresh VPS)
 .\deploy.ps1
+
+# Or continue from Step 9 (if system setup already done)
+.\deploy-continue.ps1
 ```
 
 **What it does:**

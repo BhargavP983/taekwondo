@@ -13,7 +13,9 @@ The deployment process is fully automated with:
 
 ## 🚀 Quick Start
 
-### Option A: Deploy from Windows
+### Option A: Full Deployment (Steps 1-13)
+
+**Use when:** Setting up a fresh VPS
 
 1. **Ensure you have SSH client installed**
    - Go to Settings > Apps > Optional Features
@@ -34,11 +36,31 @@ The deployment process is fully automated with:
    - Frontend: `http://YOUR_VPS_IP`
    - Backend API: `http://YOUR_VPS_IP:5000`
 
-### Option B: Deploy Directly on VPS
+### Option B: Continue from Step 9
+
+**Use when:** Steps 1-8 (system setup) are already complete, but Step 9 failed
+
+1. **Run the continuation script**
+   ```powershell
+   cd "X:\Web Dev\Gemini\-taekwondo"
+   .\deploy-continue.ps1
+   ```
+
+2. **What it does:**
+   - Step 9: Setup backend (with permission fix)
+   - Step 10: Setup frontend (with permission fix)
+   - Step 11: Start backend with PM2
+   - Step 12: Configure Nginx
+
+### Option C: Deploy Directly on VPS
+
+**Use when:** You prefer manual control
 
 1. **Upload the deploy.sh script to your VPS**
    ```bash
    scp deploy.sh deploy@YOUR_VPS_IP:/tmp/
+   # Or for continuation:
+   scp deploy-continue.sh deploy@YOUR_VPS_IP:/tmp/
    ```
 
 2. **SSH into your VPS**
