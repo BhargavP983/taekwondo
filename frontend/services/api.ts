@@ -12,12 +12,15 @@ import {
   Poomsae
 } from '../src/types/api';
 
-const API_BASE_URL = 'http://localhost:5000/api';
-const BACKEND_URL = 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const IS_DEVELOPMENT = import.meta.env.DEV;
 
-console.log('🔧 Frontend API Configuration:');
-console.log('   API Base URL:', API_BASE_URL);
-console.log('   Backend URL:', BACKEND_URL);
+if (IS_DEVELOPMENT) {
+  console.log('🔧 Frontend API Configuration:');
+  console.log('   API Base URL:', API_BASE_URL);
+  console.log('   Backend URL:', BACKEND_URL);
+}
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -40,14 +43,18 @@ const getAuthHeaders = (): Record<string, string> => {
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    console.log('\n📤 Making Request:');
-    console.log('   Method:', config.method?.toUpperCase());
-    console.log('   URL:', config.baseURL + config.url);
-    console.log('   Data:', config.data);
+    if (IS_DEVELOPMENT) {
+      console.log('\n📤 Making Request:');
+      console.log('   Method:', config.method?.toUpperCase());
+      console.log('   URL:', config.baseURL + config.url);
+      console.log('   Data:', config.data);
+    }
     return config;
   },
   (error) => {
-    console.error('❌ Request Setup Failed:', error);
+    if (IS_DEVELOPMENT) {
+      console.error('❌ Request Setup Failed:', error);
+    }
     return Promise.reject(error);
   }
 );
@@ -55,28 +62,32 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ Response Received:');
-    console.log('   Status:', response.status);
-    console.log('   Data:', response.data);
+    if (IS_DEVELOPMENT) {
+      console.log('✅ Response Received:');
+      console.log('   Status:', response.status);
+      console.log('   Data:', response.data);
+    }
     return response;
   },
   (error: AxiosError) => {
-    console.error('\n❌ Response Error:');
-    console.error('   Message:', error.message);
-    console.error('   Code:', error.code);
+    if (IS_DEVELOPMENT) {
+      console.error('\n❌ Response Error:');
+      console.error('   Message:', error.message);
+      console.error('   Code:', error.code);
 
-    if (error.response) {
-      console.error('   Status:', error.response.status);
-      console.error('   Data:', error.response.data);
-    } else if (error.request) {
-      console.error('   No response received from server');
-      console.error('   This usually means:');
-      console.error('   1. Backend is not running');
-      console.error('   2. Backend is on wrong port');
-      console.error('   3. CORS is blocking the request');
-      console.error('   4. Firewall is blocking the connection');
-    } else {
-      console.error('   Request setup error:', error.message);
+      if (error.response) {
+        console.error('   Status:', error.response.status);
+        console.error('   Data:', error.response.data);
+      } else if (error.request) {
+        console.error('   No response received from server');
+        console.error('   This usually means:');
+        console.error('   1. Backend is not running');
+        console.error('   2. Backend is on wrong port');
+        console.error('   3. CORS is blocking the request');
+        console.error('   4. Firewall is blocking the connection');
+      } else {
+        console.error('   Request setup error:', error.message);
+      }
     }
 
     return Promise.reject(error);

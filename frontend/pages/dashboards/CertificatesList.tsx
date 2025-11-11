@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { certificateApi } from '../../services/api';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
 interface Certificate {
   _id: string;
   serial: string;
@@ -59,8 +61,7 @@ const CertificatesListComponent: React.FC = () => {
   };
 
   const handleDownload = (certificate: Certificate) => {
-    const backendUrl = 'http://localhost:5000';
-    const downloadUrl = `${backendUrl}${certificate.filePath}`;
+    const downloadUrl = `${BACKEND_URL}${certificate.filePath}`;
     window.open(downloadUrl, '_blank');
   };
 
@@ -331,7 +332,7 @@ const CertificatesListComponent: React.FC = () => {
                 <div className="border-b pb-4">
                   <p className="text-sm text-gray-600 mb-2">Certificate Preview</p>
                   <img 
-                    src={`http://localhost:5000${selectedCertificate.filePath}`} 
+                    src={`${BACKEND_URL}${selectedCertificate.filePath}`} 
                     alt="Certificate" 
                     className="w-full border rounded-lg"
                   />

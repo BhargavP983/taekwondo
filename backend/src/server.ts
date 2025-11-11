@@ -18,6 +18,8 @@ dotenv.config();
 
 const app: Application = express();
 const PORT: number = parseInt(process.env.PORT || '5000', 10);
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const CORS_ORIGIN = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173', 'http://localhost:3000'];
 
 // Connect to MongoDB
 connectDB();
@@ -29,8 +31,9 @@ app.use(helmet({
 
 // Rate limiting for all routes
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes default
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10), // limit each IP
+  message: 'Too many requests from this IP, please try again later.'
 });
 app.use(limiter);
 
@@ -40,18 +43,25 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    // Allow localhost origins for development
-    if (origin.match(/^https?:\/\/localhost(:\d+)?$/)) {
+    // In development, allow all localhost origins
+    if (NODE_ENV === 'development') {
+      if (origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/)) {
+        return callback(null, true);
+      }
+    }
+
+    // Check if origin is in allowed list
+    if (CORS_ORIGIN.includes(origin)) {
       return callback(null, true);
     }
 
-    // Allow 127.0.0.1 origins for development
-    if (origin.match(/^https?:\/\/127\.0\.0\.1(:\d+)?$/)) {
-      return callback(null, true);
+    // In production, reject unauthorized origins
+    if (NODE_ENV === 'production') {
+      return callback(new Error('Not allowed by CORS'));
     }
 
-    // In production, you might want to restrict this
-    return callback(new Error('Not allowed by CORS'));
+    // Development fallback - allow
+    return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -59,7 +69,9 @@ app.use(cors({
   exposedHeaders: ['Content-Range', 'X-Content-Range', 'Content-Disposition'],
 }));
 
-console.log('✅ CORS enabled for development URLs');
+console.log('✅ CORS enabled');
+console.log('   Environment:', NODE_ENV);
+console.log('   Allowed Origins:', CORS_ORIGIN);
 
 // Body parsers
 app.use(express.json());
@@ -67,19 +79,23 @@ app.use(express.urlencoded({ extended: true }));
 
 console.log('✅ Body parsers enabled');
 
-// Detailed request logging
-app.use((req, res, next) => {
-  console.log('\n📨 Incoming Request:');
-  console.log('   Method:', req.method);
-  console.log('   Path:', req.path);
-  console.log('   Origin:', req.get('origin'));
-  console.log('   Body:', req.body);
-  next();
-});
+// Request logging (only in development)
+if (NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    console.log('\n📨 Incoming Request:');
+    console.log('   Method:', req.method);
+    console.log('   Path:', req.path);
+    console.log('   Origin:', req.get('origin'));
+    console.log('   Body:', req.body);
+    next();
+  });
+}
 
-// Logging middleware
+// Basic logging for all environments
 app.use((req, res, next) => {
-  console.log(`📨 ${req.method} ${req.path}`);
+  if (NODE_ENV === 'development') {
+    console.log(`📨 ${req.method} ${req.path}`);
+  }
   next();
 });
 
