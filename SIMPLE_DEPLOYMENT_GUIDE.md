@@ -50,6 +50,9 @@ mkdir -p ~/apps && cd ~/apps
 git clone https://github.com/BhargavP983/-taekwondo.git
 cd -taekwondo
 
+# Pull latest changes (if repo already exists)
+git pull origin main
+
 # Backend
 cd backend
 npm install && chmod -R +x node_modules/.bin/ && npm run build
