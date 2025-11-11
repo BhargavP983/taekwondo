@@ -88,6 +88,41 @@ prompt_input() {
 }
 
 ###############################################################################
+# Step 8.5: Update Application Code
+###############################################################################
+
+step8_update_code() {
+    print_header "STEP 8.5: Updating Application Code"
+    
+    if [ ! -d "$APP_DIR" ]; then
+        print_error "Application directory not found at $APP_DIR"
+        print_error "Please run the full deployment script first (deploy.sh)"
+        return 1
+    fi
+    
+    cd "$APP_DIR"
+    
+    # Check if it's a git repository
+    if [ ! -d ".git" ]; then
+        print_error "Not a git repository!"
+        print_error "Application directory exists but git is not initialized"
+        return 1
+    fi
+    
+    # Stash any local changes
+    if ! git diff-index --quiet HEAD --; then
+        print_warning "Local changes detected, stashing..."
+        git stash
+    fi
+    
+    # Pull latest changes
+    print_info "Pulling latest code from repository..."
+    retry_command "git pull origin main" "Update code from git" || return 1
+    
+    print_success "Application code updated"
+}
+
+###############################################################################
 # Step 9: Setup Backend
 ###############################################################################
 
@@ -409,6 +444,7 @@ main() {
     
     # Array of steps
     steps=(
+        "step8_update_code"
         "step9_setup_backend"
         "step10_setup_frontend"
         "step11_start_backend"
