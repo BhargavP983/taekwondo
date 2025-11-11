@@ -3,8 +3,8 @@
 ## Prerequisites
 - Ubuntu VPS (20.04 or 22.04 recommended)
 - Root or sudo access
-- Domain name pointed to your VPS IP
 - SSH access to your VPS
+- Domain name (optional - can deploy with IP address first)
 
 ---
 
@@ -146,12 +146,14 @@ cd -taekwondo
 # From your Windows machine (PowerShell or Git Bash)
 cd "X:\Web Dev\Gemini\-taekwondo"
 
-# Create a zip file first (or use WinRAR/7-Zip)
-# Then upload to VPS:
+# Upload backend (includes src/templates folder)
 scp -r backend/ deploy@your-vps-ip:/home/deploy/apps/-taekwondo/
+
+# Upload frontend
 scp -r frontend/ deploy@your-vps-ip:/home/deploy/apps/-taekwondo/
 
 # OR use FileZilla/WinSCP for GUI upload
+# Important: Make sure to transfer the entire backend folder including src/templates/
 ```
 
 #### Option C: Using rsync (Best for updates)
@@ -159,6 +161,8 @@ scp -r frontend/ deploy@your-vps-ip:/home/deploy/apps/-taekwondo/
 # From Windows with WSL or Git Bash
 rsync -avz --progress backend/ deploy@your-vps-ip:/home/deploy/apps/-taekwondo/backend/
 rsync -avz --progress frontend/ deploy@your-vps-ip:/home/deploy/apps/-taekwondo/frontend/
+
+# This preserves all files including templates
 ```
 
 ### Step 2: Setup Backend
@@ -170,14 +174,16 @@ ssh deploy@your-vps-ip
 # Navigate to backend
 cd /home/deploy/apps/-taekwondo/backend
 
-# Install dependencies
-npm install --production
+# Install ALL dependencies (including devDependencies needed for building)
+npm install
 
 # Create .env file
 nano .env
 ```
 
 Paste this content (update with your values):
+
+**Option A: Without Domain (Using IP Address)**
 ```bash
 NODE_ENV=production
 PORT=5000
@@ -189,11 +195,39 @@ MONGODB_URI=mongodb://taekwondo_user:YourAppPasswordHere@localhost:27017/ap-taek
 JWT_SECRET=your-generated-32-char-secret-here
 JWT_EXPIRES_IN=7d
 
+# Replace with your VPS IP address
+CORS_ORIGIN=http://your-vps-ip,http://your-vps-ip:5173
+FRONTEND_URL=http://your-vps-ip
+
+MAX_FILE_SIZE=5242880
+
+# Certificate Template Paths
+TEMPLATE_PATH=./src/templates/certificate-template.png
+UPLOAD_DIR=./uploads/certificate
+
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+```
+
+**Option B: With Domain (For later when you have domain)**
+```bash
+NODE_ENV=production
+PORT=5000
+
+MONGODB_URI=mongodb://taekwondo_user:YourAppPasswordHere@localhost:27017/ap-taekwondo
+JWT_SECRET=your-generated-32-char-secret-here
+JWT_EXPIRES_IN=7d
+
 # Update with your domain
 CORS_ORIGIN=https://yourdomain.com,https://www.yourdomain.com
 FRONTEND_URL=https://yourdomain.com
 
 MAX_FILE_SIZE=5242880
+
+# Certificate Template Paths
+TEMPLATE_PATH=./src/templates/certificate-template.png
+UPLOAD_DIR=./uploads/certificate
+
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 ```
@@ -201,8 +235,15 @@ RATE_LIMIT_MAX_REQUESTS=100
 Save and exit (Ctrl+X, Y, Enter)
 
 ```bash
-# Build TypeScript (if you have a build script)
+# Build TypeScript
 npm run build
+
+# After successful build, you can optionally remove devDependencies to save space
+# npm prune --production
+
+# Verify template files exist
+ls -la src/templates/
+# Should see: certificate-template.png, cadet-form-template.JPG, etc.
 
 # Create logs directory
 mkdir -p logs
@@ -250,7 +291,15 @@ cd /home/deploy/apps/-taekwondo/frontend
 nano .env.production
 ```
 
-Paste this content (update with your domain):
+Paste this content:
+
+**Option A: Without Domain (Using IP Address)**
+```bash
+VITE_API_BASE_URL=http://your-vps-ip:5000/api
+VITE_BACKEND_URL=http://your-vps-ip:5000
+```
+
+**Option B: With Domain (For later)**
 ```bash
 VITE_API_BASE_URL=https://api.yourdomain.com/api
 VITE_BACKEND_URL=https://api.yourdomain.com
@@ -265,6 +314,10 @@ npm install
 # Build for production
 npm run build
 
+# If you encounter "Could not resolve" errors on Linux:
+# This is due to case-sensitivity. The files exist but may need explicit .tsx extensions
+# The build should work if all files are transferred correctly
+
 # The build output is in the 'dist' folder
 ls -la dist
 ```
@@ -275,6 +328,66 @@ ls -la dist
 # Create Nginx configuration
 sudo nano /etc/nginx/sites-available/taekwondo
 ```
+
+**Option A: Without Domain (Using IP Address)**
+
+Paste this configuration:
+
+```nginx
+# Backend API
+server {
+    listen 5000;
+    server_name _;
+
+    client_max_body_size 10M;
+
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+
+# Frontend
+server {
+    listen 80;
+    server_name _;
+
+    root /home/deploy/apps/-taekwondo/frontend/dist;
+    index index.html;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied expired no-cache no-store private auth;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/json application/javascript;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location ~ /\. {
+        deny all;
+    }
+}
+```
+
+**Option B: With Domain (Use this when you get a domain)**
 
 Paste this configuration (update yourdomain.com with your actual domain):
 
@@ -359,9 +472,9 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-### Step 6: Configure DNS (On Your Domain Registrar)
+### Step 6: Configure DNS (Skip if using IP address only)
 
-Add these DNS records:
+**If you have a domain**, add these DNS records on your domain registrar:
 ```
 Type: A
 Name: @
@@ -381,7 +494,11 @@ TTL: 3600
 
 Wait for DNS propagation (can take 5-60 minutes)
 
-### Step 7: Install SSL Certificate (Let's Encrypt)
+**If you don't have a domain yet**, skip this step and continue to testing.
+
+### Step 7: Install SSL Certificate (Skip if using IP address)
+
+**Only do this if you have a domain configured.**
 
 ```bash
 # Install Certbot
@@ -399,8 +516,16 @@ sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com -d api.yourdomain.c
 sudo certbot renew --dry-run
 ```
 
+**Without a domain**: SSL certificates require a domain name, so you'll access via HTTP for now.
+
 ### Step 8: Test Your Application
 
+**Without Domain (IP Address):**
+1. Visit `http://your-vps-ip` - Should show your frontend
+2. Visit `http://your-vps-ip:5000/health` - Should show backend health status
+3. Try logging in and testing features
+
+**With Domain:**
 1. Visit `https://yourdomain.com` - Should show your frontend
 2. Visit `https://api.yourdomain.com/health` - Should show health status
 3. Try logging in and testing features
@@ -408,6 +533,16 @@ sudo certbot renew --dry-run
 ---
 
 ## Part 3: Post-Deployment
+
+### Open Required Ports (If using IP address without domain)
+
+```bash
+# Allow port 5000 for backend API
+sudo ufw allow 5000/tcp
+
+# Check firewall status
+sudo ufw status
+```
 
 ### Setup Automated Backups
 
