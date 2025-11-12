@@ -30,7 +30,7 @@ const formatCadetResponse = (cadet: ICadetDocument): CadetData => ({
   applicationStatus: cadet.applicationStatus || 'pending',
   formFileName: (cadet as any).formFileName,
   createdAt: (cadet as any).createdAt?.toISOString?.() || (cadet as any).createdAt,
-  formDownloadUrl: (cadet as any).formFileName ? `${process.env.BASE_URL || 'http://localhost:5000'}/forms/${(cadet as any).formFileName}` : undefined
+  formDownloadUrl: (cadet as any).formFileName ? `${process.env.BASE_URL}/uploads/forms/${(cadet as any).formFileName}` : undefined
 });
 
 interface CadetFormData {

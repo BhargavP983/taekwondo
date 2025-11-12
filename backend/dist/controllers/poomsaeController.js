@@ -27,7 +27,7 @@ const formatPoomsaeResponse = (poomsae) => ({
     nameOfCollege: poomsae.nameOfCollege,
     nameOfBoardUniversity: poomsae.nameOfBoardUniversity,
     formFileName: poomsae.formFileName,
-    formDownloadUrl: poomsae.formFileName ? `${process.env.BASE_URL || 'http://localhost:5000'}/forms/${poomsae.formFileName}` : undefined,
+    formDownloadUrl: poomsae.formFileName ? `${process.env.BASE_URL}/uploads/forms/${poomsae.formFileName}` : undefined,
     createdAt: poomsae.createdAt instanceof Date ? poomsae.createdAt.toISOString() : poomsae.createdAt
 });
 // Generate unique entry ID (atomic counter, resilient to deletions and concurrency)

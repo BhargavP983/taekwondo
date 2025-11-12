@@ -24,7 +24,7 @@ export const createCertificate = async (req: AuthRequest, res: Response) => {
       generatedBy
     });
 
-    res.status(201).json({ success: true, data: { ...cert, previewUrl: `http://localhost:5000${cert.filePath}` } });
+    res.status(201).json({ success: true, data: { ...cert, previewUrl: `${process.env.BASE_URL}${cert.filePath}` } });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     res.status(500).json({ success: false, message });

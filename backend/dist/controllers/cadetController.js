@@ -25,7 +25,7 @@ const formatCadetResponse = (cadet) => ({
     applicationStatus: cadet.applicationStatus || 'pending',
     formFileName: cadet.formFileName,
     createdAt: cadet.createdAt?.toISOString?.() || cadet.createdAt,
-    formDownloadUrl: cadet.formFileName ? `${process.env.BASE_URL || 'http://localhost:5000'}/forms/${cadet.formFileName}` : undefined
+    formDownloadUrl: cadet.formFileName ? `${process.env.BASE_URL}/uploads/forms/${cadet.formFileName}` : undefined
 });
 // Generate unique entry ID (atomic counter)
 const generateCadetEntryId = async () => {

@@ -22,7 +22,7 @@ const createCertificate = async (req, res) => {
             category,
             generatedBy
         });
-        res.status(201).json({ success: true, data: { ...cert, previewUrl: `http://localhost:5000${cert.filePath}` } });
+        res.status(201).json({ success: true, data: { ...cert, previewUrl: `${process.env.BASE_URL}${cert.filePath}` } });
     }
     catch (error) {
         const message = error instanceof Error ? error.message : String(error);
