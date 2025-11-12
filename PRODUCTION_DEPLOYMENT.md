@@ -1,5 +1,52 @@
 # Production Deployment Guide
 
+## Prerequisites
+
+### Node.js & npm Requirements
+
+⚠️ **IMPORTANT**: This project requires Node.js v24.11.1 LTS or higher and npm v11.6.2 or higher for optimal compatibility.
+
+#### Upgrade Node.js & npm (Required Setup)
+
+**Current tested versions:**
+- Node.js: v24.11.1 LTS ✅
+- npm: v11.6.2 ✅
+
+**If you're using older versions (Node.js v18.x or npm v9.x), upgrade before deployment:**
+
+```bash
+# Install nvm (Node Version Manager) if not already installed
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+
+# Install and use Node.js LTS
+nvm install --lts
+nvm use --lts
+
+# Verify versions
+node --version  # Should show v24.11.1 or higher
+npm --version   # Should show v11.6.2 or higher
+```
+
+**After Node.js upgrade, rebuild native modules:**
+```bash
+# Backend - rebuild native modules (especially @napi-rs/canvas)
+cd backend
+npm rebuild
+npm run build  # Test compilation
+
+# Frontend - reinstall dependencies
+cd ../frontend
+npm install
+npm run build  # Test build process
+```
+
+**Why this upgrade is required:**
+- ✅ Native module compatibility (`@napi-rs/canvas` for certificate generation)
+- ✅ Better security and performance
+- ✅ Latest npm dependency resolution
+- ✅ TypeScript compatibility with `@types/node ^20.10.5`
+
 ## Pre-Deployment Checklist
 
 ### 1. Environment Variables

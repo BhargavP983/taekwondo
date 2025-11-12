@@ -13,8 +13,9 @@ ssh YOUR_USERNAME@34.14.196.123
 
 ## 2️⃣ Install Everything (if not installed)
 ```bash
-# Node.js
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs
+# Node.js v24 LTS (REQUIRED - Updated for compatibility)
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt install -y nodejs
+# Verify: node --version should show v24.11.1 or higher
 
 # MongoDB
 curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor

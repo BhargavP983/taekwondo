@@ -25,7 +25,7 @@ import SuperAdminDashboard from './pages/dashboards/SuperAdminDashboard';
 
 // Dashboard Page Components
 import UserManagement from './pages/dashboards/userManagement';
-import CadetApplicationsComponent from './pages/dashboards/CadetApplications';
+import CadetApplicationsComponent from './pages/dashboards/cadetApplications';
 import PoomsaeApplications from './pages/dashboards/PoomsaeApplications';
 import GenerateCertificate from './pages/GenerateCertificate';
 

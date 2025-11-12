@@ -16,9 +16,9 @@ NC='\033[0m' # No Color
 
 # Configuration
 DEPLOY_USER="deploy"
-APP_DIR="/home/$DEPLOY_USER/apps/-taekwondo"
-REPO_URL="https://github.com/BhargavP983/-taekwondo.git"
-NODE_VERSION="20"
+APP_DIR="/home/$DEPLOY_USER/apps/taekwondo"
+REPO_URL="https://github.com/BhargavP983/taekwondo.git"
+NODE_VERSION="24"  # Updated to LTS v24 for compatibility
 MONGODB_VERSION="7.0"
 
 # Retry mechanism
@@ -124,26 +124,40 @@ step1_system_update() {
 ###############################################################################
 
 step2_install_nodejs() {
-    print_header "STEP 2: Installing Node.js v$NODE_VERSION"
+    print_header "STEP 2: Installing Node.js v$NODE_VERSION LTS (Required)"
     
     if command_exists node; then
         current_version=$(node --version)
         print_info "Node.js already installed: $current_version"
-        read -p "Reinstall Node.js? (y/N): " reinstall
-        if [[ ! $reinstall =~ ^[Yy]$ ]]; then
-            print_success "Skipping Node.js installation"
-            return 0
+        # Check if version is v24+ (required for compatibility)
+        if [[ "$current_version" =~ v2[4-9] ]] || [[ "$current_version" =~ v[3-9][0-9] ]]; then
+            print_success "Node.js v24+ detected, compatible version"
+            read -p "Reinstall Node.js? (y/N): " reinstall
+            if [[ ! $reinstall =~ ^[Yy]$ ]]; then
+                return 0
+            fi
+        else
+            print_warning "Node.js version $current_version detected. v24.11.1+ required for compatibility."
+            print_info "Upgrading to Node.js v24 LTS..."
         fi
     fi
     
-    retry_command "curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | sudo -E bash -" \
-        "Download Node.js setup script" || return 1
+    # Use LTS setup for Node.js v24
+    retry_command "curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -" \
+        "Download Node.js LTS setup script" || return 1
     
-    retry_command "sudo apt install -y nodejs" "Install Node.js" || return 1
+    retry_command "sudo apt install -y nodejs" "Install Node.js LTS" || return 1
     
     node_ver=$(node --version)
     npm_ver=$(npm --version)
-    print_success "Node.js installed: $node_ver, npm: $npm_ver"
+    
+    # Verify Node.js version is v24+
+    if [[ "$node_ver" =~ v2[4-9] ]] || [[ "$node_ver" =~ v[3-9][0-9] ]]; then
+        print_success "Node.js installed: $node_ver, npm: $npm_ver ✓ Compatible"
+    else
+        print_error "Node.js version $node_ver is not compatible. v24.11.1+ required."
+        return 1
+    fi
 }
 
 ###############################################################################
@@ -339,6 +353,11 @@ step9_setup_backend() {
     print_info "Installing backend dependencies..."
     retry_command "npm install" "Install backend npm packages" || return 1
     
+    # Rebuild native modules for Node.js v24 compatibility
+    print_info "Rebuilding native modules for Node.js v24 compatibility..."
+    retry_command "npm rebuild" "Rebuild native modules" || return 1
+    print_success "Native modules rebuilt successfully"
+    
     # Fix permissions for node_modules/.bin
     if [ -d "node_modules/.bin" ]; then
         print_info "Setting execute permissions for node_modules/.bin..."
@@ -414,6 +433,15 @@ step10_setup_frontend() {
     print_info "Installing frontend dependencies..."
     retry_command "npm install" "Install frontend npm packages" || return 1
     
+    # Fix case-sensitive import issue in App.tsx
+    print_info "Fixing case-sensitive import issue..."
+    if [ -f "App.tsx" ] && [ -f "pages/dashboards/cadetApplications.tsx" ]; then
+        sed -i "s|from './pages/dashboards/CadetApplications'|from './pages/dashboards/cadetApplications'|g" App.tsx
+        print_success "Import path fixed for cadetApplications"
+    else
+        print_warning "Could not fix import path - files may not exist"
+    fi
+    
     # Fix permissions for node_modules/.bin
     if [ -d "node_modules/.bin" ]; then
         print_info "Setting execute permissions for node_modules/.bin..."
@@ -449,7 +477,7 @@ EOF
     
     # Check critical files
     critical_files=(
-        "pages/dashboards/CadetApplications.tsx"
+        "pages/dashboards/cadetApplications.tsx"
         "pages/dashboards/PoomsaeApplications.tsx"
         "pages/dashboards/CertificatesList.tsx"
         "App.tsx"
@@ -630,7 +658,7 @@ mkdir -p $BACKUP_DIR
 mongodump --uri="mongodb://taekwondo_user:${MONGODB_PASSWORD}@localhost:27017/ap-taekwondo" --out="$BACKUP_DIR/mongodb_$DATE"
 
 # Backup uploads
-tar -czf "$BACKUP_DIR/uploads_$DATE.tar.gz" /home/deploy/apps/-taekwondo/backend/uploads
+tar -czf "$BACKUP_DIR/uploads_$DATE.tar.gz" $APP_DIR/backend/uploads
 
 # Keep only last 7 days of backups
 find $BACKUP_DIR -type f -mtime +7 -delete
@@ -645,6 +673,36 @@ EOF
     (crontab -l 2>/dev/null | grep -v "backup-taekwondo"; echo "0 2 * * * $BACKUP_SCRIPT >> /home/$DEPLOY_USER/logs/backup.log 2>&1") | crontab -
     
     print_success "Automated backups configured (daily at 2 AM)"
+}
+
+###############################################################################
+# Step 14: Create Application Admin User
+###############################################################################
+
+step14_create_admin_user() {
+    print_header "STEP 14: Creating Application Admin User"
+    
+    cd "$APP_DIR/backend"
+    
+    # Fix the createAdmin script role issue
+    print_info "Fixing admin creation script..."
+    if [ -f "src/scripts/createAdmin.ts" ]; then
+        # Replace super_admin with superAdmin in the createAdmin script
+        sed -i "s/'super_admin'/'superAdmin'/g" src/scripts/createAdmin.ts
+        print_success "Admin script role fixed"
+    fi
+    
+    # Create admin user
+    print_info "Creating application admin user..."
+    if npm run create-admin; then
+        print_success "Application admin user created successfully"
+        print_info "Default admin credentials:"
+        echo -e "  ${GREEN}Email: admin@aptaekwondo.com${NC}"
+        echo -e "  ${GREEN}Password: admin123${NC}"
+        echo -e "  ${YELLOW}⚠ Please change the password after first login!${NC}"
+    else
+        print_warning "Admin user creation failed or user already exists"
+    fi
 }
 
 ###############################################################################
@@ -675,6 +733,7 @@ main() {
         "step11_start_backend"
         "step12_configure_nginx"
         "step13_setup_backups"
+        "step14_create_admin_user"
     )
     
     failed_steps=()

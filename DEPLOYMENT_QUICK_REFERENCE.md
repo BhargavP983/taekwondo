@@ -23,6 +23,7 @@ sudo ./deploy.sh
 - [ ] VPS IP address ready
 - [ ] GitHub repository accessible
 - [ ] 2-3 MongoDB passwords ready
+- [ ] ⚠️ **Node.js v24.11.1+ LTS required** (see updated deployment scripts)
 
 ---
 
@@ -31,7 +32,7 @@ sudo ./deploy.sh
 | Step | Action | Time | Retry |
 |------|--------|------|-------|
 | 1 | System update | 2-5 min | ✅ |
-| 2 | Install Node.js v20 | 1-2 min | ✅ |
+| 2 | Install Node.js v24 LTS | 1-2 min | ✅ |
 | 3 | Install MongoDB v7.0 | 2-3 min | ✅ |
 | 4 | Configure MongoDB users | 1 min | ⚠️ |
 | 5 | Install PM2 | 30 sec | ✅ |

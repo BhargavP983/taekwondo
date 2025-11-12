@@ -17,7 +17,7 @@ const createDefaultAdmin = async () => {
         email: 'admin@aptaekwondo.com',
         password: 'admin123',
         name: 'Super Admin',
-        role: 'super_admin',
+        role: 'superAdmin',
         isActive: true
       });
       console.log('✅ Default admin created');

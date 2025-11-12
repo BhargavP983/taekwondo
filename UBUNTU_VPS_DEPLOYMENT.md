@@ -28,6 +28,45 @@ The script will automatically:
 ### Prerequisites
 - Ubuntu VPS (20.04 or 22.04 recommended)
 - Root or sudo access
+
+### 🔧 Node.js Requirements (Critical Setup)
+
+⚠️ **REQUIRED**: This application requires Node.js v24.11.1 LTS or higher for production deployment.
+
+**Install Node.js LTS on Ubuntu:**
+```bash
+# Install nvm (Node Version Manager)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+
+# Install Node.js LTS
+nvm install --lts
+nvm use --lts
+
+# Make LTS default
+nvm alias default lts/*
+
+# Verify installation
+node --version  # Should output v24.11.1 or higher
+npm --version   # Should output v11.6.2 or higher
+```
+
+**Alternative: Install via NodeSource repository:**
+```bash
+# Add NodeSource repository for latest LTS
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Verify versions
+node --version
+npm --version
+```
+
+**Why Node.js v24+ is required:**
+- ✅ Native module compatibility (canvas, sharp libraries)
+- ✅ Better security and performance
+- ✅ Required for proper TypeScript compilation
+- ✅ Matches development environment requirements
 - SSH access to your VPS
 - Domain name (optional - can deploy with IP address first)
 
